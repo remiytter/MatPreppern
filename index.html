@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MatPreppern | Meal prep gjort enkelt</title>
+    <meta
+      name="description"
+      content="MatPreppern hjelper deg med å finne meal prep-oppskrifter, se makroer og justere porsjoner."
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <header class="site-header">
+      <nav class="navbar">
+        <a href="index.html" class="logo">MatPreppern</a>
+
+        <div class="nav-links">
+          <a href="#recipes">Oppskrifter</a>
+          <a href="#add-recipe">Legg til oppskrift</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="hero-content">
+          <p class="eyebrow">Meal prep · makroer · porsjoner</p>
+          <h1>Meal prep gjort enkelt.</h1>
+          <p class="hero-text">
+            Finn proteinrike oppskrifter, se makroer og juster porsjoner for uka.
+          </p>
+
+          <div class="hero-actions">
+            <a href="#recipes" class="primary-button">Se oppskrifter</a>
+            <a href="#add-recipe" class="secondary-button">Legg til oppskrift</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="filter-section" aria-label="Filtrer oppskrifter">
+        <div class="filter-header">
+          <div>
+            <h2>Finn riktig meal prep</h2>
+            <p>Sorter etter kalorier, protein, tid og kategori.</p>
+          </div>
+        </div>
+
+        <div class="filters">
+          <label class="search-field">
+            Søk etter oppskrift
+            <input
+              type="search"
+              id="searchInput"
+              placeholder="F.eks. kylling, pasta eller ris"
+            />
+          </label>
+
+          <label class="filter-field">
+            Maks kalorier per porsjon
+            <span id="calorieValue">900 kcal</span>
+            <input
+              type="range"
+              id="calorieSlider"
+              min="300"
+              max="900"
+              value="900"
+              step="50"
+            />
+          </label>
+
+          <label class="filter-field">
+            Sorter etter
+            <select id="sortSelect">
+              <option value="default">Standard</option>
+              <option value="lowest-calories">Lavest kalorier</option>
+              <option value="highest-protein">Mest protein</option>
+              <option value="fastest">Raskest</option>
+              <option value="most-portions">Flest porsjoner</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="category-filters" aria-label="Kategorier">
+          <button class="category-button active" data-category="all">Alle</button>
+          <button class="category-button" data-category="proteinrik">Proteinrik</button>
+          <button class="category-button" data-category="lavkalori">Lavkalori</button>
+          <button class="category-button" data-category="student">Student</button>
+          <button class="category-button" data-category="budsjett">Budsjett</button>
+          <button class="category-button" data-category="rask">Rask</button>
+        </div>
+      </section>
+
+      <section class="recipes-section" id="recipes">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Oppskrifter</p>
+            <h2>Populære meal prep-oppskrifter</h2>
+          </div>
+          <p id="recipeCount">0 oppskrifter</p>
+        </div>
+
+        <div class="recipe-grid" id="recipeGrid"></div>
+      </section>
+
+      <section class="recipe-detail-section hidden" id="recipeDetail">
+        <div id="recipeDetailContent"></div>
+        </section>
+
+      <section class="add-recipe-section" id="add-recipe">
+        <div class="section-heading">
+            <div>
+            <p class="eyebrow">Ny oppskrift</p>
+            <h2>Legg til egen meal prep</h2>
+            </div>
+        </div>
+
+        <form class="recipe-form" id="recipeForm">
+            <div class="form-grid">
+            <label>
+                Navn på oppskrift
+                <input type="text" id="titleInput" required placeholder="F.eks. Kylling med ris" />
+            </label>
+
+            <label>
+                Tid i minutter
+                <input type="number" id="timeInput" required min="1" placeholder="40" />
+            </label>
+
+            <label>
+                Antall porsjoner
+                <input type="number" id="portionsInput" required min="1" placeholder="4" />
+            </label>
+
+            <label>
+                Kalorier per porsjon
+                <input type="number" id="caloriesInput" required min="1" placeholder="650" />
+            </label>
+
+            <label>
+                Protein per porsjon
+                <input type="number" id="proteinInput" required min="0" placeholder="48" />
+            </label>
+
+            <label>
+                Karbohydrater per porsjon
+                <input type="number" id="carbsInput" required min="0" placeholder="70" />
+            </label>
+
+            <label>
+                Fett per porsjon
+                <input type="number" id="fatInput" required min="0" placeholder="18" />
+            </label>
+            </div>
+
+            <label>
+            Kort beskrivelse
+            <textarea
+                id="descriptionInput"
+                required
+                placeholder="Kort forklaring av retten"
+            ></textarea>
+            </label>
+
+            <label>
+            Ingredienser
+            <textarea
+                id="ingredientsInput"
+                required
+                placeholder="Skriv én ingrediens per linje slik:&#10;800 | g | Kyllingfilet&#10;300 | g | Ris&#10;400 | g | Grønnsaker"
+            ></textarea>
+            </label>
+
+            <label>
+            Fremgangsmåte
+            <textarea
+                id="instructionsInput"
+                required
+                placeholder="Skriv ett steg per linje"
+            ></textarea>
+            </label>
+
+            <label>
+            Meal prep-notat
+            <textarea
+                id="prepNoteInput"
+                required
+                placeholder="F.eks. Holder seg fint i kjøleskapet i 3–4 dager."
+            ></textarea>
+            </label>
+
+            <fieldset class="tag-fieldset">
+            <legend>Kategorier</legend>
+
+            <label>
+                <input type="checkbox" value="proteinrik" />
+                Proteinrik
+            </label>
+
+            <label>
+                <input type="checkbox" value="lavkalori" />
+                Lavkalori
+            </label>
+
+            <label>
+                <input type="checkbox" value="student" />
+                Student
+            </label>
+
+            <label>
+                <input type="checkbox" value="budsjett" />
+                Budsjett
+            </label>
+
+            <label>
+                <input type="checkbox" value="rask" />
+                Rask
+            </label>
+
+            <label>
+                <input type="checkbox" value="meal prep" checked />
+                Meal prep
+            </label>
+            </fieldset>
+
+            <button type="submit" class="primary-button">Legg til oppskrift</button>
+
+            <p class="form-message" id="formMessage"></p>
+        </form>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
