@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Planlegger | MatPreppern</title>
+
+    <meta
+      name="description"
+      content="Lag en meal prep-plan, velg oppskrifter og fordel porsjonene over flere dager."
+    />
+
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <header class="site-header">
+      <nav class="navbar">
+        <a href="index.html" class="logo">MatPreppern</a>
+
+        <div class="nav-links">
+          <a href="index.html">Oppskrifter</a>
+          <a href="planner.html" aria-current="page">Planlegger</a>
+          <a href="index.html#add-recipe">Legg til oppskrift</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="planner-hero">
+        <div>
+          <p class="eyebrow">Meal prep-planlegger</p>
+
+          <h1>Planlegg måltidene dine.</h1>
+
+          <p class="hero-text">
+            Velg hvor mange dager planen skal gjelde, legg til oppskrifter og
+            fordel porsjonene mellom frokost, lunsj og middag.
+          </p>
+        </div>
+      </section>
+
+      <section class="plan-setup-section" id="planSetupSection">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Steg 1</p>
+            <h2>Opprett en ny plan</h2>
+          </div>
+        </div>
+
+        <form class="plan-setup-form" id="planSetupForm">
+          <div class="plan-setup-grid">
+            <div class="days-selector">
+              <label for="daysInput">
+                Hvor mange dager skal planen gjelde?
+              </label>
+
+              <div class="days-controls">
+                <button
+                  type="button"
+                  id="decreaseDays"
+                  aria-label="Reduser antall dager"
+                >
+                  −
+                </button>
+
+                <input
+                  type="number"
+                  id="daysInput"
+                  min="1"
+                  max="14"
+                  value="5"
+                  required
+                />
+
+                <button
+                  type="button"
+                  id="increaseDays"
+                  aria-label="Øk antall dager"
+                >
+                  +
+                </button>
+              </div>
+
+              <p class="field-help">
+                Du kan planlegge mellom 1 og 14 dager.
+              </p>
+            </div>
+
+            <fieldset class="meal-type-fieldset">
+              <legend>Måltider per dag</legend>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="mealType"
+                  value="breakfast"
+                  checked
+                />
+                Frokost
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="mealType"
+                  value="lunch"
+                  checked
+                />
+                Lunsj
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="mealType"
+                  value="dinner"
+                  checked
+                />
+                Middag
+              </label>
+            </fieldset>
+          </div>
+
+          <div class="plan-date-preview">
+            <span>Planen starter i morgen</span>
+            <strong id="planDatePreview">
+              Datoene vises her
+            </strong>
+          </div>
+
+          <button type="submit" class="primary-button">
+            Opprett plan
+          </button>
+
+          <p class="form-message" id="planSetupMessage"></p>
+        </form>
+      </section>
+
+      <section
+        class="planner-workspace hidden"
+        id="plannerWorkspace"
+      >
+        <div class="planner-toolbar">
+          <div>
+            <p class="eyebrow">Din plan</p>
+            <h2 id="plannerTitle">Meal prep-plan</h2>
+            <p id="plannerDateRange"></p>
+          </div>
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="resetPlanButton"
+          >
+            Start på nytt
+          </button>
+        </div>
+
+        <div class="plan-summary" id="planSummary">
+          <div class="summary-box">
+            <strong id="totalDays">0</strong>
+            <span>dager</span>
+          </div>
+
+          <div class="summary-box">
+            <strong id="totalMealSlots">0</strong>
+            <span>måltidsplasser</span>
+          </div>
+
+          <div class="summary-box">
+            <strong id="plannedMealCount">0</strong>
+            <span>planlagt</span>
+          </div>
+
+          <div class="summary-box">
+            <strong id="remainingPortionCount">0</strong>
+            <span>porsjoner igjen</span>
+          </div>
+        </div>
+
+        <div class="planner-layout">
+          <aside class="portion-bank">
+            <div class="portion-bank-header">
+              <div>
+                <p class="eyebrow">Porsjonsbank</p>
+                <h2>Valgte oppskrifter</h2>
+              </div>
+
+              <button
+                type="button"
+                class="secondary-button"
+                id="openRecipePicker"
+              >
+                + Finn oppskrifter
+              </button>
+            </div>
+
+            <p class="portion-bank-description">
+              Oppskrifter du legger til, vises her med antall tilgjengelige
+              porsjoner.
+            </p>
+
+            <div
+              class="selected-recipe-list"
+              id="selectedRecipeList"
+            >
+              <div class="empty-planner-state">
+                <h3>Ingen oppskrifter valgt</h3>
+                <p>
+                  Finn en oppskrift og velg hvor mange porsjoner du skal lage.
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          <section class="meal-plan-calendar">
+            <div class="meal-plan-header">
+              <div>
+                <p class="eyebrow">Fordeling</p>
+                <h2>Måltidsplan</h2>
+              </div>
+
+              <p id="placementMessage">
+                Velg en oppskrift fra porsjonsbanken.
+              </p>
+            </div>
+
+            <div class="meal-plan-grid" id="mealPlanGrid"></div>
+          </section>
+        </div>
+      </section>
+
+      <section
+        class="recipe-picker hidden"
+        id="recipePicker"
+        aria-label="Velg oppskrifter"
+      >
+        <div class="recipe-picker-card">
+          <div class="recipe-picker-header">
+            <div>
+              <p class="eyebrow">Oppskriftsbanken</p>
+              <h2>Legg til oppskrift i planen</h2>
+            </div>
+
+            <button
+              type="button"
+              class="close-picker-button"
+              id="closeRecipePicker"
+              aria-label="Lukk oppskriftsvelger"
+            >
+              ×
+            </button>
+          </div>
+
+          <label class="search-field">
+            Søk etter oppskrift
+            <input
+              type="search"
+              id="plannerRecipeSearch"
+              placeholder="F.eks. kylling, ris eller frokost"
+            />
+          </label>
+
+          <div
+            class="planner-recipe-grid"
+            id="plannerRecipeGrid"
+          ></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/planner.js"></script>
+  </body>
+</html>
