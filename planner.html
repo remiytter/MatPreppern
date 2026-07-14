@@ -230,6 +230,29 @@
             <div class="meal-plan-grid" id="mealPlanGrid"></div>
           </section>
         </div>
+
+        <section class="shopping-list-section">
+          <div class="shopping-list-header">
+            <div>
+              <p class="eyebrow">Handleliste</p>
+              <h2>Dette trenger du</h2>
+              <p>
+                Ingrediensene beregnes ut fra antall porsjoner i porsjonsbanken.
+              </p>
+            </div>
+
+            <p class="shopping-item-count" id="shoppingItemCount">
+              0 varer
+            </p>
+          </div>
+
+          <div class="shopping-list" id="shoppingList">
+            <div class="empty-planner-state">
+              <h3>Handlelisten er tom</h3>
+              <p>Legg til oppskrifter i porsjonsbanken.</p>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section
@@ -267,6 +290,55 @@
             class="planner-recipe-grid"
             id="plannerRecipeGrid"
           ></div>
+        </div>
+      </section>
+
+      <section
+        class="portion-distribution hidden"
+        id="portionDistribution"
+        aria-label="Fordel porsjoner"
+      >
+        <div class="portion-distribution-card">
+          <div class="recipe-picker-header">
+            <div>
+              <p class="eyebrow">Automatisk fordeling</p>
+              <h2 id="distributionTitle">Fordel porsjoner</h2>
+            </div>
+
+            <button
+              type="button"
+              class="close-picker-button"
+              id="closeDistribution"
+              aria-label="Lukk fordeling"
+            >
+              ×
+            </button>
+          </div>
+
+          <p class="distribution-description" id="distributionDescription"></p>
+
+          <form class="distribution-form" id="distributionForm">
+            <label>
+              Måltid
+              <select id="distributionMealType" required></select>
+            </label>
+
+            <label>
+              Fra dato
+              <select id="distributionStartDate" required></select>
+            </label>
+
+            <label>
+              Til dato
+              <select id="distributionEndDate" required></select>
+            </label>
+
+            <button type="submit" class="primary-button">
+              Fordel porsjoner
+            </button>
+
+            <p class="form-message" id="distributionMessage"></p>
+          </form>
         </div>
       </section>
     </main>

@@ -68,8 +68,53 @@ const placementMessage = document.querySelector(
   "#placementMessage"
 );
 
+const portionDistribution = document.querySelector(
+  "#portionDistribution"
+);
+
+const closeDistributionButton = document.querySelector(
+  "#closeDistribution"
+);
+
+const distributionForm = document.querySelector(
+  "#distributionForm"
+);
+
+const distributionTitle = document.querySelector(
+  "#distributionTitle"
+);
+
+const distributionDescription = document.querySelector(
+  "#distributionDescription"
+);
+
+const distributionMealType = document.querySelector(
+  "#distributionMealType"
+);
+
+const distributionStartDate = document.querySelector(
+  "#distributionStartDate"
+);
+
+const distributionEndDate = document.querySelector(
+  "#distributionEndDate"
+);
+
+const distributionMessage = document.querySelector(
+  "#distributionMessage"
+);
+
+const shoppingList = document.querySelector(
+  "#shoppingList"
+);
+
+const shoppingItemCount = document.querySelector(
+  "#shoppingItemCount"
+);
+
 let mealPlan = null;
 let selectedRecipeForPlacement = null;
+let selectedRecipeForDistribution = null;
 
 function getTomorrow() {
   const tomorrow = new Date();
@@ -180,6 +225,113 @@ function changeNumberOfDays(change) {
   daysInput.value = newNumberOfDays;
 
   updateDatePreview();
+}
+
+function formatIngredientAmount(amount) {
+  const roundedAmount =
+    Math.round((amount + Number.EPSILON) * 10) / 10;
+
+  if (Number.isInteger(roundedAmount)) {
+    return roundedAmount;
+  }
+
+  return roundedAmount
+    .toFixed(1)
+    .replace(".", ",");
+}
+
+function createShoppingListItems() {
+  const combinedIngredients = new Map();
+
+  mealPlan.selectedRecipes.forEach(function (
+    selectedRecipe
+  ) {
+    const recipe = getRecipeById(
+      selectedRecipe.recipeId
+    );
+
+    if (!recipe) {
+      return;
+    }
+
+    const portionScale =
+      selectedRecipe.portionsPrepared /
+      recipe.portions;
+
+    recipe.ingredients.forEach(function (
+      ingredient
+    ) {
+      const ingredientName = ingredient.name.trim();
+      const ingredientUnit = ingredient.unit.trim();
+
+      const ingredientKey =
+        `${ingredientName.toLowerCase()}|` +
+        `${ingredientUnit.toLowerCase()}`;
+
+      const scaledAmount =
+        Number(ingredient.amount) * portionScale;
+
+      const existingIngredient =
+        combinedIngredients.get(ingredientKey);
+
+      if (existingIngredient) {
+        existingIngredient.amount += scaledAmount;
+      } else {
+        combinedIngredients.set(ingredientKey, {
+          name: ingredientName,
+          unit: ingredientUnit,
+          amount: scaledAmount,
+        });
+      }
+    });
+  });
+
+  return Array.from(combinedIngredients.values()).sort(
+    function (firstIngredient, secondIngredient) {
+      return firstIngredient.name.localeCompare(
+        secondIngredient.name,
+        "nb"
+      );
+    }
+  );
+}
+
+function renderShoppingList() {
+  const shoppingItems = createShoppingListItems();
+
+  shoppingItemCount.textContent =
+    shoppingItems.length === 1
+      ? "1 vare"
+      : `${shoppingItems.length} varer`;
+
+  if (shoppingItems.length === 0) {
+    shoppingList.innerHTML = `
+      <div class="empty-planner-state">
+        <h3>Handlelisten er tom</h3>
+
+        <p>
+          Legg til oppskrifter i porsjonsbanken.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  shoppingList.innerHTML = shoppingItems
+    .map(function (item) {
+      return `
+        <div class="shopping-list-item">
+          <span>${item.name}</span>
+
+          <strong>
+            ${formatIngredientAmount(item.amount)}
+            ${item.unit}
+          </strong>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function saveMealPlan() {
@@ -499,6 +651,19 @@ function renderSelectedRecipes() {
                 : placementButtonText
             }
           </button>
+          <button
+            type="button"
+            class="distribute-portions-button"
+            data-action="open-distribution"
+            data-recipe-id="${recipe.id}"
+            ${remainingPortions === 0 ? "disabled" : ""}
+          >
+            ${
+              remainingPortions === 0
+                ? "Ingen porsjoner å fordele"
+                : "Fordel porsjoner automatisk"
+            }
+          </button>
 
           <div class="selected-recipe-actions">
             <button
@@ -562,6 +727,172 @@ function updatePlacementMessage() {
 
   placementMessage.textContent =
     `${recipe.title} er valgt. Trykk på et ledig måltidsfelt.`;
+}
+
+function getPlanDates() {
+  const dates = [];
+  const startDate = createDateFromKey(mealPlan.startDate);
+
+  for (
+    let dayIndex = 0;
+    dayIndex < mealPlan.numberOfDays;
+    dayIndex += 1
+  ) {
+    const date = addDays(startDate, dayIndex);
+
+    dates.push({
+      key: createDateKey(date),
+      label: capitalizeFirstLetter(
+        formatDayHeading(date)
+      ),
+    });
+  }
+
+  return dates;
+}
+
+function openDistribution(recipeId) {
+  const selectedRecipe = mealPlan.selectedRecipes.find(
+    function (recipe) {
+      return recipe.recipeId === recipeId;
+    }
+  );
+
+  const recipe = getRecipeById(recipeId);
+
+  if (!selectedRecipe || !recipe) {
+    return;
+  }
+
+  const remainingPortions =
+    getRemainingPortions(selectedRecipe);
+
+  if (remainingPortions === 0) {
+    return;
+  }
+
+  selectedRecipeForDistribution = recipeId;
+
+  distributionTitle.textContent =
+    `Fordel ${recipe.title}`;
+
+  distributionDescription.textContent =
+    `${remainingPortions} porsjoner er tilgjengelige. ` +
+    "Det legges maksimalt én porsjon per dag.";
+
+  distributionMealType.innerHTML = mealPlan.mealTypes
+    .map(function (mealType) {
+      return `
+        <option value="${mealType}">
+          ${mealTypeNames[mealType]}
+        </option>
+      `;
+    })
+    .join("");
+
+  const planDates = getPlanDates();
+
+  const dateOptions = planDates
+    .map(function (date) {
+      return `
+        <option value="${date.key}">
+          ${date.label}
+        </option>
+      `;
+    })
+    .join("");
+
+  distributionStartDate.innerHTML = dateOptions;
+  distributionEndDate.innerHTML = dateOptions;
+
+  distributionStartDate.value = planDates[0].key;
+  distributionEndDate.value =
+    planDates[planDates.length - 1].key;
+
+  distributionMessage.textContent = "";
+
+  portionDistribution.classList.remove("hidden");
+}
+
+function closeDistribution() {
+  selectedRecipeForDistribution = null;
+  distributionMessage.textContent = "";
+
+  portionDistribution.classList.add("hidden");
+}
+
+function distributeRecipePortions(
+  recipeId,
+  mealType,
+  startDateKey,
+  endDateKey
+) {
+  const selectedRecipe = mealPlan.selectedRecipes.find(
+    function (recipe) {
+      return recipe.recipeId === recipeId;
+    }
+  );
+
+  if (!selectedRecipe) {
+    return {
+      added: 0,
+      skipped: 0,
+    };
+  }
+
+  const planDates = getPlanDates().filter(function (date) {
+    return (
+      date.key >= startDateKey &&
+      date.key <= endDateKey
+    );
+  });
+
+  let remainingPortions =
+    getRemainingPortions(selectedRecipe);
+
+  let added = 0;
+  let skipped = 0;
+
+  for (const date of planDates) {
+    if (remainingPortions === 0) {
+      break;
+    }
+
+    const slotIsOccupied = mealPlan.plannedMeals.some(
+      function (plannedMeal) {
+        return (
+          plannedMeal.date === date.key &&
+          plannedMeal.mealType === mealType
+        );
+      }
+    );
+
+    if (slotIsOccupied) {
+      skipped += 1;
+      continue;
+    }
+
+    mealPlan.plannedMeals.push({
+      id: crypto.randomUUID(),
+      recipeId,
+      date: date.key,
+      mealType,
+    });
+
+    added += 1;
+    remainingPortions -= 1;
+  }
+
+  saveMealPlan();
+  renderSelectedRecipes();
+  renderMealPlanGrid();
+  updatePlanSummary();
+  updatePlacementMessage();
+
+  return {
+    added,
+    skipped,
+  };
 }
 
 function selectRecipeForPlacement(recipeId) {
@@ -829,6 +1160,8 @@ function updatePlanSummary() {
     mealPlan.plannedMeals.length;
   remainingPortionCountElement.textContent =
     calculateRemainingPortions();
+  
+  renderShoppingList();
 }
 
 function renderPlanner() {
@@ -1053,6 +1386,11 @@ selectedRecipeList.addEventListener(
     const recipeId = Number(button.dataset.recipeId);
     const action = button.dataset.action;
 
+    if (action === "open-distribution") {
+      openDistribution(recipeId);
+      return;
+    }
+
     if (action === "select-for-placement") {
     selectRecipeForPlacement(recipeId);
     return;
@@ -1104,13 +1442,80 @@ recipePicker.addEventListener("click", function (event) {
 });
 
 document.addEventListener("keydown", function (event) {
-  if (
-    event.key === "Escape" &&
-    !recipePicker.classList.contains("hidden")
-  ) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!recipePicker.classList.contains("hidden")) {
     recipePicker.classList.add("hidden");
   }
+
+  if (!portionDistribution.classList.contains("hidden")) {
+    closeDistribution();
+  }
 });
+
+distributionForm.addEventListener(
+  "submit",
+  function (event) {
+    event.preventDefault();
+
+    if (selectedRecipeForDistribution === null) {
+      return;
+    }
+
+    const startDateKey =
+      distributionStartDate.value;
+
+    const endDateKey =
+      distributionEndDate.value;
+
+    if (startDateKey > endDateKey) {
+      distributionMessage.textContent =
+        "Fra-dato kan ikke være etter til-dato.";
+
+      return;
+    }
+
+    const result = distributeRecipePortions(
+      selectedRecipeForDistribution,
+      distributionMealType.value,
+      startDateKey,
+      endDateKey
+    );
+
+    if (result.added === 0) {
+      distributionMessage.textContent =
+        "Ingen porsjoner ble fordelt. Feltene kan allerede være opptatt.";
+
+      return;
+    }
+
+    let message =
+      `${result.added} porsjoner ble fordelt.`;
+
+    if (result.skipped > 0) {
+      message +=
+        ` ${result.skipped} opptatte felt ble hoppet over.`;
+    }
+
+    distributionMessage.textContent = message;
+  }
+);
+
+closeDistributionButton.addEventListener(
+  "click",
+  closeDistribution
+);
+
+portionDistribution.addEventListener(
+  "click",
+  function (event) {
+    if (event.target === portionDistribution) {
+      closeDistribution();
+    }
+  }
+);
 
 updateDatePreview();
 
