@@ -484,39 +484,52 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-const installAppButton = document.querySelector("#installAppButton");
+const installAppButton = document.querySelector(
+  "#installAppButton"
+);
 
-let deferredInstallPrompt = null;
+let deferredPrompt = null;
 
-window.addEventListener("beforeinstallprompt", (event) => {
+window.addEventListener(
+  "beforeinstallprompt",
+  (event) => {
     event.preventDefault();
 
-    deferredInstallPrompt = event;
-    installAppButton.hidden = false;
-});
+    deferredPrompt = event;
 
-installAppButton.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-        return;
+    if (installAppButton) {
+      installAppButton.hidden = false;
+    }
+  }
+);
+
+installAppButton?.addEventListener(
+  "click",
+  async () => {
+    if (!deferredPrompt) {
+      return;
     }
 
-    await deferredInstallPrompt.prompt();
+    deferredPrompt.prompt();
 
-    const choice = await deferredInstallPrompt.userChoice;
+    await deferredPrompt.userChoice;
 
-    if (choice.outcome === "accepted") {
-        console.log("MatPreppern ble installert.");
-    } else {
-        console.log("Installasjonen ble avbrutt.");
-    }
+    deferredPrompt = null;
 
-    deferredInstallPrompt = null;
     installAppButton.hidden = true;
-});
+  }
+);
 
 window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    installAppButton.hidden = true;
+  deferredPrompt = null;
 
-    console.log("MatPreppern er installert.");
+  if (installAppButton) {
+    installAppButton.hidden = true;
+  }
 });
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js");
+  });
+}

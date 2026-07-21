@@ -1602,13 +1602,6 @@ shoppingList.addEventListener("change", (event) => {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then(() => {
-        console.log("Service Worker registrert.");
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    navigator.serviceWorker.register("./sw.js");
   });
 }
