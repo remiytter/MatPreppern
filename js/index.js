@@ -471,19 +471,6 @@ if (recipeForm) {
 
 renderRecipes(recipes);
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then(() => {
-        console.log("Service Worker registrert.");
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  });
-}
-
 const installAppButton = document.querySelector(
   "#installAppButton"
 );
@@ -529,7 +516,12 @@ window.addEventListener("appinstalled", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js");
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("./sw.js");
+      console.log("Service Worker registrert:", registration.scope);
+    } catch (error) {
+      console.error("Service Worker kunne ikke registreres:", error);
+    }
   });
 }
