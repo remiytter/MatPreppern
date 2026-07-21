@@ -470,3 +470,53 @@ if (recipeForm) {
 }
 
 renderRecipes(recipes);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(() => {
+        console.log("Service Worker registrert.");
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  });
+}
+
+const installAppButton = document.querySelector("#installAppButton");
+
+let deferredInstallPrompt = null;
+
+window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+
+    deferredInstallPrompt = event;
+    installAppButton.hidden = false;
+});
+
+installAppButton.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+        return;
+    }
+
+    await deferredInstallPrompt.prompt();
+
+    const choice = await deferredInstallPrompt.userChoice;
+
+    if (choice.outcome === "accepted") {
+        console.log("MatPreppern ble installert.");
+    } else {
+        console.log("Installasjonen ble avbrutt.");
+    }
+
+    deferredInstallPrompt = null;
+    installAppButton.hidden = true;
+});
+
+window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    installAppButton.hidden = true;
+
+    console.log("MatPreppern er installert.");
+});

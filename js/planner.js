@@ -5,6 +5,8 @@ const recipes = loadRecipes(defaultRecipes);
 
 const PLAN_STORAGE_KEY = "matpreppernMealPlan";
 
+const CHECKED_SHOPPING_ITEMS_KEY = "matpreppernCheckedShoppingItems";
+
 const mealTypeNames = {
   breakfast: "Frokost",
   lunch: "Lunsj",
@@ -296,42 +298,99 @@ function createShoppingListItems() {
   );
 }
 
+function loadCheckedShoppingItems() {
+  const storedItems = localStorage.getItem(CHECKED_SHOPPING_ITEMS_KEY);
+
+  if (!storedItems) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(storedItems);
+  } catch (error) {
+    console.error("Kunne ikke lese avkryssede handlelistevarer:", error);
+    return [];
+  }
+}
+
+function saveCheckedShoppingItems(checkedItems) {
+  localStorage.setItem(
+    CHECKED_SHOPPING_ITEMS_KEY,
+    JSON.stringify(checkedItems)
+  );
+}
+
+function createShoppingItemId(item) {
+  const name = item.name.trim().toLowerCase();
+  const unit = item.unit.trim().toLowerCase();
+
+  return `${name}-${unit}`;
+}
+
+function toggleShoppingItem(itemId) {
+  const checkedItems = loadCheckedShoppingItems();
+
+  const itemIsChecked = checkedItems.includes(itemId);
+
+  const updatedCheckedItems = itemIsChecked
+    ? checkedItems.filter((checkedItemId) => checkedItemId !== itemId)
+    : [...checkedItems, itemId];
+
+  saveCheckedShoppingItems(updatedCheckedItems);
+  renderShoppingList();
+}
+
 function renderShoppingList() {
   const shoppingItems = createShoppingListItems();
+  const checkedItems = loadCheckedShoppingItems();
 
-  shoppingItemCount.textContent =
-    shoppingItems.length === 1
-      ? "1 vare"
-      : `${shoppingItems.length} varer`;
+  shoppingList.innerHTML = "";
+  shoppingItemCount.textContent = shoppingItems.length;
 
   if (shoppingItems.length === 0) {
     shoppingList.innerHTML = `
-      <div class="empty-planner-state">
-        <h3>Handlelisten er tom</h3>
-
-        <p>
-          Legg til oppskrifter i porsjonsbanken.
-        </p>
-      </div>
+      <li class="shopping-list-empty">
+        Velg oppskrifter og porsjoner for å lage en handleliste.
+      </li>
     `;
 
     return;
   }
 
-  shoppingList.innerHTML = shoppingItems
-    .map(function (item) {
-      return `
-        <div class="shopping-list-item">
-          <span>${item.name}</span>
+  shoppingItems.forEach((item) => {
+    const itemId = createShoppingItemId(item);
+    const isChecked = checkedItems.includes(itemId);
 
-          <strong>
-            ${formatIngredientAmount(item.amount)}
-            ${item.unit}
-          </strong>
-        </div>
-      `;
-    })
-    .join("");
+    const listItem = document.createElement("li");
+    listItem.classList.add("shopping-list-item");
+
+    if (isChecked) {
+      listItem.classList.add("shopping-list-item--checked");
+    }
+
+    listItem.innerHTML = `
+      <label class="shopping-list-item__label">
+        <input
+          type="checkbox"
+          class="shopping-list-item__checkbox"
+          data-shopping-item-id="${itemId}"
+          ${isChecked ? "checked" : ""}
+        >
+
+        <span class="shopping-list-item__content">
+          <span class="shopping-list-item__name">
+            ${item.name}
+          </span>
+
+          <span class="shopping-list-item__amount">
+            ${formatIngredientAmount(item.amount)} ${item.unit}
+          </span>
+        </span>
+      </label>
+    `;
+
+    shoppingList.appendChild(listItem);
+  });
 }
 
 function saveMealPlan() {
@@ -1525,4 +1584,31 @@ if (mealPlan) {
   daysInput.value = mealPlan.numberOfDays;
 
   renderPlanner();
+}
+
+shoppingList.addEventListener("change", (event) => {
+  const checkbox = event.target.closest(
+    ".shopping-list-item__checkbox"
+  );
+
+  if (!checkbox) {
+    return;
+  }
+
+  const itemId = checkbox.dataset.shoppingItemId;
+
+  toggleShoppingItem(itemId);
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(() => {
+        console.log("Service Worker registrert.");
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  });
 }
