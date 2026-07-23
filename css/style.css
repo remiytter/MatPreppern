@@ -1498,3 +1498,54 @@ input[type="range"] {
     outline: 3px solid #88b89c;
     outline-offset: 3px;
 }
+
+.install-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    padding:20px;
+
+    z-index:9999;
+}
+
+.install-modal.hidden{
+    display:none;
+}
+
+.install-modal-content{
+    background:white;
+    border-radius:16px;
+    padding:30px;
+    max-width:420px;
+    width:100%;
+    position:relative;
+}
+
+.close-modal{
+    position:absolute;
+    right:15px;
+    top:15px;
+
+    background:none;
+    border:none;
+
+    font-size:22px;
+    cursor:pointer;
+}
+
+.install-modal-content h2{
+    margin-bottom:20px;
+}
+
+.install-modal-content ol{
+    padding-left:20px;
+}
+
+.install-modal-content li{
+    margin-bottom:12px;
+}

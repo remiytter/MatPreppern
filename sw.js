@@ -1,4 +1,4 @@
-const CACHE_NAME = "matpreppern-v3";
+const CACHE_NAME = "matpreppern-v6";
 
 const FILES_TO_CACHE = [
   "./",

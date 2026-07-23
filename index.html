@@ -41,8 +41,8 @@
           <div class="hero-actions">
             <a href="#recipes" class="primary-button">Se oppskrifter</a>
             <a href="#add-recipe" class="secondary-button">Legg til oppskrift</a>
-            <button id="installAppButton" class="install-app-button" hidden>
-                Installer MatPreppern
+            <button id="installAppButton" class="install-app-button">
+              Installer MatPreppern
             </button>
           </div>
         </div>
@@ -239,6 +239,24 @@
         </form>
         </section>
     </main>
+
+    <div id="installModal" class="install-modal hidden">
+      <div class="install-modal-content">
+        <button id="closeInstallModal" class="close-modal">
+          ✕
+        </button>
+
+        <h2>Installer MatPreppern</h2>
+
+        <div id="installInstructions"></div>
+
+        <button
+          id="startInstallButton"
+          class="primary-button hidden">
+          Installer nå
+        </button>
+      </div>
+    </div>
 
     <script type="module" src="js/index.js"></script>
   </body>

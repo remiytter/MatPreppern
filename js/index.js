@@ -475,44 +475,97 @@ const installAppButton = document.querySelector(
   "#installAppButton"
 );
 
+const installModal =
+document.querySelector("#installModal");
+
+const installInstructions =
+document.querySelector("#installInstructions");
+
+const startInstallButton =
+document.querySelector("#startInstallButton");
+
+const closeInstallModal =
+document.querySelector("#closeInstallModal");
+
 let deferredPrompt = null;
 
-window.addEventListener(
-  "beforeinstallprompt",
-  (event) => {
-    event.preventDefault();
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredPrompt = event;
+});
 
-    deferredPrompt = event;
+installAppButton.addEventListener("click", () => {
 
-    if (installAppButton) {
-      installAppButton.hidden = false;
+    installModal.classList.remove("hidden");
+
+    const isIOS =
+        /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    const isAndroid =
+        /android/i.test(navigator.userAgent);
+
+    startInstallButton.classList.add("hidden");
+
+    if(isIOS){
+
+        installInstructions.innerHTML = `
+            <p>
+                På iPhone må appen legges til manuelt.
+            </p>
+
+            <ol>
+                <li>Trykk på Del-knappen nederst i Safari.</li>
+                <li>Velg <strong>Legg til på Hjem-skjerm</strong>.</li>
+                <li>Trykk <strong>Legg til</strong>.</li>
+            </ol>
+        `;
+
+        return;
     }
-  }
-);
 
-installAppButton?.addEventListener(
-  "click",
-  async () => {
-    if (!deferredPrompt) {
-      return;
+    if(isAndroid){
+
+        if(deferredPrompt){
+
+            installInstructions.innerHTML=`
+                <p>
+                    Trykk knappen under for å installere
+                    MatPreppern.
+                </p>
+            `;
+
+            startInstallButton.classList.remove("hidden");
+
+        }else{
+
+            installInstructions.innerHTML=`
+                <p>
+                    Dersom installasjon ikke dukker opp:
+                </p>
+
+                <ol>
+                    <li>Trykk på ⋮ øverst til høyre.</li>
+                    <li>Velg <strong>Installer app</strong>.</li>
+                </ol>
+            `;
+        }
+
+        return;
     }
 
-    deferredPrompt.prompt();
-
-    await deferredPrompt.userChoice;
-
-    deferredPrompt = null;
-
-    installAppButton.hidden = true;
-  }
-);
+    installInstructions.innerHTML=`
+        <p>
+            På PC kan du installere via adresselinjen
+            eller nettlesermenyen.
+        </p>
+    `;
+});
 
 window.addEventListener("appinstalled", () => {
   deferredPrompt = null;
 
-  if (installAppButton) {
-    installAppButton.hidden = true;
-  }
+  installAppButton.textContent = "MatPreppern er installert";
+  installAppButton.disabled = true;
 });
 
 if ("serviceWorker" in navigator) {
@@ -525,3 +578,22 @@ if ("serviceWorker" in navigator) {
     }
   });
 }
+
+startInstallButton.addEventListener("click", async () => {
+
+    if(!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+
+    await deferredPrompt.userChoice;
+
+    deferredPrompt = null;
+
+    installModal.classList.add("hidden");
+});
+
+closeInstallModal.addEventListener("click", () => {
+
+    installModal.classList.add("hidden");
+
+});
