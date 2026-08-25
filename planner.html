@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="nb">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,9 +15,11 @@
   </head>
 
   <body>
+    <a class="skip-link" href="#main-content">Hopp til hovedinnhold</a>
+
     <header class="site-header">
-      <nav class="navbar">
-        <a href="index.html" class="logo">MatPreppern</a>
+      <nav class="navbar" aria-label="Hovedmeny">
+        <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
 
         <div class="nav-links">
           <a href="index.html">Oppskrifter</a>
@@ -27,7 +29,7 @@
       </nav>
     </header>
 
-    <main>
+    <main id="main-content">
       <section class="planner-hero">
         <div>
           <p class="eyebrow">Meal prep-planlegger</p>
@@ -40,6 +42,15 @@
           </p>
         </div>
       </section>
+
+      <p
+        class="data-status planner-data-status"
+        id="plannerRecipeStatus"
+        role="status"
+        aria-live="polite"
+      >
+        Henter oppskrifter …
+      </p>
 
       <section class="plan-setup-section" id="planSetupSection">
         <div class="section-heading">
@@ -192,6 +203,7 @@
                 type="button"
                 class="secondary-button"
                 id="openRecipePicker"
+                disabled
               >
                 + Finn oppskrifter
               </button>
@@ -246,25 +258,28 @@
             </p>
           </div>
 
-          <div class="shopping-list" id="shoppingList">
+          <ul class="shopping-list" id="shoppingList">
             <div class="empty-planner-state">
               <h3>Handlelisten er tom</h3>
               <p>Legg til oppskrifter i porsjonsbanken.</p>
             </div>
-          </div>
+          </ul>
         </section>
       </section>
 
       <section
         class="recipe-picker hidden"
         id="recipePicker"
-        aria-label="Velg oppskrifter"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="recipePickerTitle"
+        aria-hidden="true"
       >
-        <div class="recipe-picker-card">
+        <div class="recipe-picker-card" tabindex="-1">
           <div class="recipe-picker-header">
             <div>
               <p class="eyebrow">Oppskriftsbanken</p>
-              <h2>Legg til oppskrift i planen</h2>
+              <h2 id="recipePickerTitle">Legg til oppskrift i planen</h2>
             </div>
 
             <button
@@ -296,9 +311,12 @@
       <section
         class="portion-distribution hidden"
         id="portionDistribution"
-        aria-label="Fordel porsjoner"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="distributionTitle"
+        aria-hidden="true"
       >
-        <div class="portion-distribution-card">
+        <div class="portion-distribution-card" tabindex="-1">
           <div class="recipe-picker-header">
             <div>
               <p class="eyebrow">Automatisk fordeling</p>

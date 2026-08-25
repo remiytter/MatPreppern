@@ -1,39 +1,41 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="nb">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MatPreppern | Meal prep gjort enkelt</title>
     <meta
       name="description"
-      content="MatPreppern hjelper deg med å finne meal prep-oppskrifter, se makroer og justere porsjoner."
+      content="Finn, filtrer og legg til meal prep-oppskrifter, se makroer og juster porsjoner."
     />
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1f5b3d">
-    <link
-    rel="apple-touch-icon"
-    href="assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#1f5b3d" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
   </head>
 
   <body>
+    <a class="skip-link" href="#main-content">Hopp til hovedinnhold</a>
+
     <header class="site-header">
-      <nav class="navbar">
-        <a href="index.html" class="logo">MatPreppern</a>
+      <nav class="navbar" aria-label="Hovedmeny">
+        <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">
+          MatPreppern
+        </a>
 
         <div class="nav-links">
-          <a href="index.html#recipes">Oppskrifter</a>
+          <a href="index.html#recipes" aria-current="page">Oppskrifter</a>
           <a href="planner.html">Planlegger</a>
           <a href="index.html#add-recipe">Legg til oppskrift</a>
         </div>
       </nav>
     </header>
 
-    <main>
-      <section class="hero-section">
+    <main id="main-content">
+      <section class="hero-section" aria-labelledby="pageTitle">
         <div class="hero-content">
           <p class="eyebrow">Meal prep · makroer · porsjoner</p>
-          <h1>Meal prep gjort enkelt.</h1>
+          <h1 id="pageTitle">Meal prep gjort enkelt.</h1>
           <p class="hero-text">
             Finn proteinrike oppskrifter, se makroer og juster porsjoner for uka.
           </p>
@@ -41,48 +43,82 @@
           <div class="hero-actions">
             <a href="#recipes" class="primary-button">Se oppskrifter</a>
             <a href="#add-recipe" class="secondary-button">Legg til oppskrift</a>
-            <button id="installAppButton" class="install-app-button">
+            <button id="installAppButton" class="install-app-button" type="button">
               Installer MatPreppern
             </button>
           </div>
         </div>
       </section>
 
-      <section class="filter-section" aria-label="Filtrer oppskrifter">
+      <form
+        class="filter-section"
+        id="recipeFilters"
+        role="search"
+        aria-labelledby="filterHeading"
+      >
         <div class="filter-header">
           <div>
-            <h2>Finn riktig meal prep</h2>
-            <p>Sorter etter kalorier, protein, tid og kategori.</p>
+            <h2 id="filterHeading">Finn riktig meal prep</h2>
+            <p>Søk i navn, beskrivelse, ingredienser og kategorier.</p>
           </div>
+          <button class="text-button" id="resetFilters" type="button">
+            Nullstill filtre
+          </button>
         </div>
 
         <div class="filters">
           <label class="search-field">
-            Søk etter oppskrift
+            Søk etter oppskrift eller ingrediens
             <input
               type="search"
               id="searchInput"
               placeholder="F.eks. kylling, pasta eller ris"
+              autocomplete="off"
             />
           </label>
 
           <label class="filter-field">
-            Maks kalorier per porsjon
-            <span id="calorieValue">900 kcal</span>
+            <span>
+              Maks kalorier per porsjon:
+              <output id="calorieValue" for="calorieSlider">Ingen grense</output>
+            </span>
             <input
               type="range"
               id="calorieSlider"
-              min="300"
-              max="900"
-              value="900"
+              min="200"
+              max="1500"
+              value="1500"
               step="50"
             />
           </label>
 
           <label class="filter-field">
+            Minst protein per porsjon
+            <select id="proteinSelect">
+              <option value="0">Ingen grense</option>
+              <option value="20">20 g</option>
+              <option value="30">30 g</option>
+              <option value="40">40 g</option>
+              <option value="50">50 g</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            Maksimal tid
+            <select id="timeSelect">
+              <option value="0">Ingen grense</option>
+              <option value="15">15 minutter</option>
+              <option value="30">30 minutter</option>
+              <option value="45">45 minutter</option>
+              <option value="60">60 minutter</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
             Sorter etter
             <select id="sortSelect">
-              <option value="default">Standard</option>
+              <option value="newest">Nyeste først</option>
+              <option value="alphabetical">Navn A–Å</option>
               <option value="lowest-calories">Lavest kalorier</option>
               <option value="highest-protein">Mest protein</option>
               <option value="fastest">Raskest</option>
@@ -91,173 +127,202 @@
           </label>
         </div>
 
-        <div class="category-filters" aria-label="Kategorier">
-          <button class="category-button active" data-category="all">Alle</button>
-          <button class="category-button" data-category="proteinrik">Proteinrik</button>
-          <button class="category-button" data-category="lavkalori">Lavkalori</button>
-          <button class="category-button" data-category="student">Student</button>
-          <button class="category-button" data-category="budsjett">Budsjett</button>
-          <button class="category-button" data-category="rask">Rask</button>
-        </div>
-      </section>
+        <fieldset class="category-fieldset">
+          <legend>Kategori</legend>
+          <div class="category-filters">
+            <button
+              class="category-button active"
+              type="button"
+              data-category="all"
+              aria-pressed="true"
+            >
+              Alle
+            </button>
+            <button class="category-button" type="button" data-category="proteinrik" aria-pressed="false">
+              Proteinrik
+            </button>
+            <button class="category-button" type="button" data-category="lavkalori" aria-pressed="false">
+              Lavkalori
+            </button>
+            <button class="category-button" type="button" data-category="student" aria-pressed="false">
+              Student
+            </button>
+            <button class="category-button" type="button" data-category="budsjett" aria-pressed="false">
+              Budsjett
+            </button>
+            <button class="category-button" type="button" data-category="rask" aria-pressed="false">
+              Rask
+            </button>
+          </div>
+        </fieldset>
 
-      <section class="recipes-section" id="recipes">
+        <p class="filter-summary" id="filterSummary" role="status" aria-live="polite">
+          Laster oppskrifter …
+        </p>
+      </form>
+
+      <section class="recipes-section" id="recipes" aria-labelledby="recipesHeading">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Oppskrifter</p>
-            <h2>Populære meal prep-oppskrifter</h2>
+            <h2 id="recipesHeading" tabindex="-1">Meal prep-oppskrifter</h2>
           </div>
-          <p id="recipeCount">0 oppskrifter</p>
+          <p id="recipeCount" aria-live="polite">0 oppskrifter</p>
         </div>
 
-        <div class="recipe-grid" id="recipeGrid"></div>
+        <p class="data-status" id="recipeStatus" role="status" aria-live="polite">
+          Henter oppskrifter …
+        </p>
+        <div class="recipe-grid" id="recipeGrid" aria-busy="true"></div>
       </section>
 
-      <section class="recipe-detail-section hidden" id="recipeDetail">
+      <section class="recipe-detail-section hidden" id="recipeDetail" aria-live="polite">
         <div id="recipeDetailContent"></div>
-        </section>
+      </section>
 
-      <section class="add-recipe-section" id="add-recipe">
+      <section class="add-recipe-section" id="add-recipe" aria-labelledby="addRecipeHeading">
         <div class="section-heading">
-            <div>
+          <div>
             <p class="eyebrow">Ny oppskrift</p>
-            <h2>Legg til egen meal prep</h2>
-            </div>
+            <h2 id="addRecipeHeading">Legg til egen meal prep</h2>
+          </div>
         </div>
 
         <form class="recipe-form" id="recipeForm">
-            <div class="form-grid">
+          <div class="form-grid">
             <label>
-                Navn på oppskrift
-                <input type="text" id="titleInput" required placeholder="F.eks. Kylling med ris" />
+              Navn på oppskrift
+              <input
+                type="text"
+                id="titleInput"
+                required
+                minlength="2"
+                maxlength="120"
+                autocomplete="off"
+                placeholder="F.eks. Kylling med ris"
+              />
             </label>
 
             <label>
-                Tid i minutter
-                <input type="number" id="timeInput" required min="1" placeholder="40" />
+              Tid i minutter
+              <input type="number" id="timeInput" required min="1" max="1440" placeholder="40" />
             </label>
 
             <label>
-                Antall porsjoner
-                <input type="number" id="portionsInput" required min="1" placeholder="4" />
+              Antall porsjoner
+              <input type="number" id="portionsInput" required min="1" max="100" placeholder="4" />
             </label>
 
             <label>
-                Kalorier per porsjon
-                <input type="number" id="caloriesInput" required min="1" placeholder="650" />
+              Kalorier per porsjon
+              <input type="number" id="caloriesInput" required min="1" max="10000" placeholder="650" />
             </label>
 
             <label>
-                Protein per porsjon
-                <input type="number" id="proteinInput" required min="0" placeholder="48" />
+              Protein per porsjon (g)
+              <input type="number" id="proteinInput" required min="0" max="1000" step="0.1" placeholder="48" />
             </label>
 
             <label>
-                Karbohydrater per porsjon
-                <input type="number" id="carbsInput" required min="0" placeholder="70" />
+              Karbohydrater per porsjon (g)
+              <input type="number" id="carbsInput" required min="0" max="1000" step="0.1" placeholder="70" />
             </label>
 
             <label>
-                Fett per porsjon
-                <input type="number" id="fatInput" required min="0" placeholder="18" />
+              Fett per porsjon (g)
+              <input type="number" id="fatInput" required min="0" max="1000" step="0.1" placeholder="18" />
             </label>
-            </div>
+          </div>
 
-            <label>
+          <label>
             Kort beskrivelse
             <textarea
-                id="descriptionInput"
-                required
-                placeholder="Kort forklaring av retten"
+              id="descriptionInput"
+              required
+              minlength="10"
+              maxlength="1200"
+              placeholder="Kort forklaring av retten"
             ></textarea>
-            </label>
+          </label>
 
-            <label>
+          <label>
             Ingredienser
+            <span class="field-help" id="ingredientsHelp">
+              Én ingrediens per linje: mengde | enhet | navn. Desimaltall kan skrives med komma.
+            </span>
             <textarea
-                id="ingredientsInput"
-                required
-                placeholder="Skriv én ingrediens per linje slik:&#10;800 | g | Kyllingfilet&#10;300 | g | Ris&#10;400 | g | Grønnsaker"
+              id="ingredientsInput"
+              required
+              maxlength="6000"
+              aria-describedby="ingredientsHelp"
+              placeholder="800 | g | Kyllingfilet&#10;300 | g | Ris&#10;400 | g | Grønnsaker"
             ></textarea>
-            </label>
+          </label>
 
-            <label>
+          <label>
             Fremgangsmåte
+            <span class="field-help" id="instructionsHelp">Skriv ett steg per linje.</span>
             <textarea
-                id="instructionsInput"
-                required
-                placeholder="Skriv ett steg per linje"
+              id="instructionsInput"
+              required
+              maxlength="6000"
+              aria-describedby="instructionsHelp"
+              placeholder="Kok risen.&#10;Stek kyllingen.&#10;Fordel i matbokser."
             ></textarea>
-            </label>
+          </label>
 
-            <label>
+          <label>
             Meal prep-notat
             <textarea
-                id="prepNoteInput"
-                required
-                placeholder="F.eks. Holder seg fint i kjøleskapet i 3–4 dager."
+              id="prepNoteInput"
+              required
+              maxlength="800"
+              placeholder="F.eks. Holder seg fint i kjøleskapet i 3–4 dager."
             ></textarea>
-            </label>
+          </label>
 
-            <fieldset class="tag-fieldset">
+          <fieldset class="tag-fieldset">
             <legend>Kategorier</legend>
 
-            <label>
-                <input type="checkbox" value="proteinrik" />
-                Proteinrik
-            </label>
+            <label><input type="checkbox" name="tags" value="proteinrik" /> Proteinrik</label>
+            <label><input type="checkbox" name="tags" value="lavkalori" /> Lavkalori</label>
+            <label><input type="checkbox" name="tags" value="student" /> Student</label>
+            <label><input type="checkbox" name="tags" value="budsjett" /> Budsjett</label>
+            <label><input type="checkbox" name="tags" value="rask" /> Rask</label>
+            <label><input type="checkbox" name="tags" value="meal prep" checked /> Meal prep</label>
+          </fieldset>
 
-            <label>
-                <input type="checkbox" value="lavkalori" />
-                Lavkalori
-            </label>
+          <button type="submit" class="primary-button" id="submitRecipeButton">
+            Lagre oppskrift
+          </button>
 
-            <label>
-                <input type="checkbox" value="student" />
-                Student
-            </label>
-
-            <label>
-                <input type="checkbox" value="budsjett" />
-                Budsjett
-            </label>
-
-            <label>
-                <input type="checkbox" value="rask" />
-                Rask
-            </label>
-
-            <label>
-                <input type="checkbox" value="meal prep" checked />
-                Meal prep
-            </label>
-            </fieldset>
-
-            <button type="submit" class="primary-button">Legg til oppskrift</button>
-
-            <p class="form-message" id="formMessage"></p>
+          <p class="form-message" id="formMessage" role="status" aria-live="polite" tabindex="-1"></p>
         </form>
-        </section>
+      </section>
     </main>
 
-    <div id="installModal" class="install-modal hidden">
-      <div class="install-modal-content">
-        <button id="closeInstallModal" class="close-modal">
-          ✕
+    <div
+      id="installModal"
+      class="install-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="installModalTitle"
+      aria-hidden="true"
+    >
+      <div class="install-modal-content" tabindex="-1">
+        <button id="closeInstallModal" class="close-modal" type="button" aria-label="Lukk installasjonsvindu">
+          ×
         </button>
 
-        <h2>Installer MatPreppern</h2>
-
+        <h2 id="installModalTitle">Installer MatPreppern</h2>
         <div id="installInstructions"></div>
-
-        <button
-          id="startInstallButton"
-          class="primary-button hidden">
+        <button id="startInstallButton" class="primary-button hidden" type="button">
           Installer nå
         </button>
       </div>
     </div>
 
+    <noscript>MatPreppern krever JavaScript for å hente og vise oppskrifter.</noscript>
     <script type="module" src="js/index.js"></script>
   </body>
 </html>

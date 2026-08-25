@@ -1,7 +1,7 @@
-import { defaultRecipes } from "./recipes.js";
-import { loadRecipes } from "./storage.js";
+import { fetchRecipes } from "./supabase.js";
+import { escapeHtml, normalizeSearchText } from "./recipe-utils.js";
 
-const recipes = loadRecipes(defaultRecipes);
+let recipes = [];
 
 const PLAN_STORAGE_KEY = "matpreppernMealPlan";
 
@@ -65,6 +65,9 @@ const plannerRecipeGrid = document.querySelector(
 const plannerRecipeSearch = document.querySelector(
   "#plannerRecipeSearch"
 );
+const plannerRecipeStatus = document.querySelector(
+  "#plannerRecipeStatus"
+);
 
 const placementMessage = document.querySelector(
   "#placementMessage"
@@ -117,6 +120,7 @@ const shoppingItemCount = document.querySelector(
 let mealPlan = null;
 let selectedRecipeForPlacement = null;
 let selectedRecipeForDistribution = null;
+let lastDialogTrigger = null;
 
 function getTomorrow() {
   const tomorrow = new Date();
@@ -324,7 +328,7 @@ function createShoppingItemId(item) {
   const name = item.name.trim().toLowerCase();
   const unit = item.unit.trim().toLowerCase();
 
-  return `${name}-${unit}`;
+  return encodeURIComponent(`${name}|${unit}`);
 }
 
 function toggleShoppingItem(itemId) {
@@ -345,7 +349,10 @@ function renderShoppingList() {
   const checkedItems = loadCheckedShoppingItems();
 
   shoppingList.innerHTML = "";
-  shoppingItemCount.textContent = shoppingItems.length;
+  shoppingItemCount.textContent =
+    shoppingItems.length === 1
+      ? "1 vare"
+      : `${shoppingItems.length} varer`;
 
   if (shoppingItems.length === 0) {
     shoppingList.innerHTML = `
@@ -379,11 +386,11 @@ function renderShoppingList() {
 
         <span class="shopping-list-item__content">
           <span class="shopping-list-item__name">
-            ${item.name}
+            ${escapeHtml(item.name)}
           </span>
 
           <span class="shopping-list-item__amount">
-            ${formatIngredientAmount(item.amount)} ${item.unit}
+            ${formatIngredientAmount(item.amount)} ${escapeHtml(item.unit)}
           </span>
         </span>
       </label>
@@ -584,7 +591,7 @@ function renderMealPlanGrid() {
 
                   <div class="planned-meal">
                     <strong>
-                      ${recipe.title}
+                      ${escapeHtml(recipe.title)}
                     </strong>
 
                     <span class="planned-meal-macros">
@@ -610,11 +617,19 @@ function renderMealPlanGrid() {
                 ? "available-for-placement"
                 : "";
 
+            const emptySlotLabel =
+              selectedRecipeForPlacement !== null
+                ? `${mealTypeNames[mealType]} ${formatDate(currentDate)}: plasser valgt porsjon`
+                : `${mealTypeNames[mealType]} ${formatDate(currentDate)}: ingen porsjon planlagt`;
+
             return `
-              <div
+              <button
+                type="button"
                 class="meal-slot ${placementClass}"
                 data-date="${dateKey}"
                 data-meal-type="${mealType}"
+                aria-label="${emptySlotLabel}"
+                ${selectedRecipeForPlacement === null ? "disabled" : ""}
               >
                 <h4>
                   ${mealTypeNames[mealType]}
@@ -627,7 +642,7 @@ function renderMealPlanGrid() {
                       : "Ingen porsjon planlagt"
                   }
                 </p>
-              </div>
+              </button>
             `;
           })
           .join("")}
@@ -684,7 +699,7 @@ function renderSelectedRecipes() {
           class="selected-recipe-card ${selectedClass}"
           data-recipe-id="${recipe.id}"
         >
-          <h3>${recipe.title}</h3>
+          <h3>${escapeHtml(recipe.title)}</h3>
 
           <p class="selected-recipe-meta">
             ${recipe.calories} kcal ·
@@ -871,6 +886,10 @@ function openDistribution(recipeId) {
   distributionMessage.textContent = "";
 
   portionDistribution.classList.remove("hidden");
+  portionDistribution.setAttribute("aria-hidden", "false");
+  portionDistribution
+    .querySelector(".portion-distribution-card")
+    .focus();
 }
 
 function closeDistribution() {
@@ -878,6 +897,8 @@ function closeDistribution() {
   distributionMessage.textContent = "";
 
   portionDistribution.classList.add("hidden");
+  portionDistribution.setAttribute("aria-hidden", "true");
+  lastDialogTrigger?.focus();
 }
 
 function distributeRecipePortions(
@@ -1070,7 +1091,7 @@ function renderRecipePicker(recipeList) {
           class="planner-recipe-card"
           data-recipe-id="${recipe.id}"
         >
-          <h3>${recipe.title}</h3>
+          <h3>${escapeHtml(recipe.title)}</h3>
 
           <p>
             ${recipe.time} min ·
@@ -1256,6 +1277,7 @@ function resetMealPlan() {
 
   plannerWorkspace.classList.add("hidden");
   recipePicker.classList.add("hidden");
+  recipePicker.setAttribute("aria-hidden", "true");
   planSetupSection.classList.remove("hidden");
 
   daysInput.value = 5;
@@ -1316,44 +1338,50 @@ resetPlanButton.addEventListener(
 openRecipePickerButton.addEventListener(
   "click",
   function () {
+    lastDialogTrigger = openRecipePickerButton;
     plannerRecipeSearch.value = "";
 
     renderRecipePicker(recipes);
 
     recipePicker.classList.remove("hidden");
+    recipePicker.setAttribute("aria-hidden", "false");
     plannerRecipeSearch.focus();
   }
 );
 
+function closeRecipePicker() {
+  recipePicker.classList.add("hidden");
+  recipePicker.setAttribute("aria-hidden", "true");
+  openRecipePickerButton.focus();
+}
+
 closeRecipePickerButton.addEventListener(
   "click",
-  function () {
-    recipePicker.classList.add("hidden");
-  }
+  closeRecipePicker
 );
 
 plannerRecipeSearch.addEventListener(
   "input",
   function () {
-    const searchValue = plannerRecipeSearch.value
-      .trim()
-      .toLowerCase();
+    const searchValue = normalizeSearchText(
+      plannerRecipeSearch.value
+    );
 
     const filteredRecipes = recipes.filter(
       function (recipe) {
-        const matchesTitle = recipe.title
-          .toLowerCase()
-          .includes(searchValue);
-
-        const matchesTags = recipe.tags.some(
-          function (tag) {
-            return tag
-              .toLowerCase()
-              .includes(searchValue);
-          }
+        const searchableText = normalizeSearchText(
+          [
+            recipe.title,
+            recipe.description,
+            recipe.prepNote,
+            ...recipe.tags,
+            ...recipe.ingredients.map(
+              (ingredient) => ingredient.name
+            ),
+          ].join(" ")
         );
 
-        return matchesTitle || matchesTags;
+        return searchableText.includes(searchValue);
       }
     );
 
@@ -1446,6 +1474,7 @@ selectedRecipeList.addEventListener(
     const action = button.dataset.action;
 
     if (action === "open-distribution") {
+      lastDialogTrigger = button;
       openDistribution(recipeId);
       return;
     }
@@ -1496,21 +1525,53 @@ mealPlanGrid.addEventListener("click", function (event) {
 
 recipePicker.addEventListener("click", function (event) {
   if (event.target === recipePicker) {
-    recipePicker.classList.add("hidden");
+    closeRecipePicker();
   }
 });
 
 document.addEventListener("keydown", function (event) {
-  if (event.key !== "Escape") {
+  const openDialog = !portionDistribution.classList.contains("hidden")
+    ? portionDistribution
+    : !recipePicker.classList.contains("hidden")
+      ? recipePicker
+      : null;
+
+  if (!openDialog) {
     return;
   }
 
-  if (!recipePicker.classList.contains("hidden")) {
-    recipePicker.classList.add("hidden");
+  if (event.key === "Escape") {
+    if (openDialog === portionDistribution) {
+      closeDistribution();
+    } else {
+      closeRecipePicker();
+    }
+
+    return;
   }
 
-  if (!portionDistribution.classList.contains("hidden")) {
-    closeDistribution();
+  if (event.key !== "Tab") {
+    return;
+  }
+
+  const focusableElements = Array.from(
+    openDialog.querySelectorAll(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  );
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements.at(-1);
+
+  if (!firstElement || !lastElement) {
+    return;
+  }
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
   }
 });
 
@@ -1576,14 +1637,67 @@ portionDistribution.addEventListener(
   }
 );
 
-updateDatePreview();
+function removeUnavailableRecipesFromPlan() {
+  if (!mealPlan) {
+    return;
+  }
 
-mealPlan = loadMealPlan();
+  const availableRecipeIds = new Set(
+    recipes.map((recipe) => recipe.id)
+  );
+  const selectedRecipeCount = mealPlan.selectedRecipes.length;
+  const plannedMealCount = mealPlan.plannedMeals.length;
 
-if (mealPlan) {
-  daysInput.value = mealPlan.numberOfDays;
+  mealPlan.selectedRecipes = mealPlan.selectedRecipes.filter(
+    (selectedRecipe) =>
+      availableRecipeIds.has(Number(selectedRecipe.recipeId))
+  );
+  mealPlan.plannedMeals = mealPlan.plannedMeals.filter(
+    (plannedMeal) =>
+      availableRecipeIds.has(Number(plannedMeal.recipeId))
+  );
 
-  renderPlanner();
+  if (
+    mealPlan.selectedRecipes.length !== selectedRecipeCount ||
+    mealPlan.plannedMeals.length !== plannedMealCount
+  ) {
+    saveMealPlan();
+  }
+}
+
+async function initializePlanner() {
+  updateDatePreview();
+
+  try {
+    const result = await fetchRecipes();
+    recipes = result.recipes;
+    openRecipePickerButton.disabled = recipes.length === 0;
+
+    if (result.source === "cache") {
+      plannerRecipeStatus.textContent =
+        "Databasen er ikke tilgjengelig. Du ser sist lagrede oppskrifter.";
+      plannerRecipeStatus.classList.add("data-status--warning");
+    } else if (recipes.length === 0) {
+      plannerRecipeStatus.textContent =
+        "Ingen oppskrifter er lagt til ennå. Legg til en oppskrift før du planlegger.";
+    } else {
+      plannerRecipeStatus.textContent = "";
+    }
+  } catch (error) {
+    console.error("Kunne ikke hente oppskrifter:", error);
+    plannerRecipeStatus.textContent =
+      error.message || "Kunne ikke hente oppskrifter.";
+    plannerRecipeStatus.classList.add("data-status--error");
+    openRecipePickerButton.disabled = true;
+  }
+
+  mealPlan = loadMealPlan();
+
+  if (mealPlan) {
+    removeUnavailableRecipesFromPlan();
+    daysInput.value = mealPlan.numberOfDays;
+    renderPlanner();
+  }
 }
 
 shoppingList.addEventListener("change", (event) => {
@@ -1605,3 +1719,5 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js");
   });
 }
+
+initializePlanner();
