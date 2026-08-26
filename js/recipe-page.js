@@ -47,7 +47,7 @@ function render() {
       <div class="recipe-page-actions">
         <button id="favoriteButton" class="secondary-button" type="button" aria-pressed="${favorite}">${favorite ? "★ Fjern favoritt" : "☆ Lagre som favoritt"}</button>
         <button id="reportButton" class="text-button" type="button">Rapporter oppskrift</button>
-        ${user?.id === recipe.userId ? `<a class="secondary-button" href="index.html?edit=${recipe.id}#add-recipe">Rediger oppskriften</a>` : ""}
+        ${user?.id === recipe.userId ? `<a class="secondary-button" href="add-recipe.html?edit=${recipe.id}">Rediger oppskriften</a>` : ""}
       </div>
       <div class="portion-controls" aria-label="Juster antall porsjoner">
         <button id="decreasePortions" type="button" aria-label="Reduser antall porsjoner" ${selectedPortions === 1 ? "disabled" : ""}>−</button>

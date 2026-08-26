@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <title>Legg til oppskrift | MatPreppern</title>
+    <meta name="description" content="Legg til eller rediger en meal prep-oppskrift i MatPreppern." />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Hopp til hovedinnhold</a>
+    <header class="site-header">
+      <nav class="navbar" aria-label="Hovedmeny">
+        <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
+        <div class="nav-links">
+          <a href="index.html#recipes">Oppskrifter</a>
+          <a href="planner.html">Planlegger</a>
+          <a href="community-notes.html">Community Notes</a>
+          <a href="add-recipe.html" aria-current="page">Legg til oppskrift</a>
+          <a href="account.html" data-auth-label>Logg inn</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="account-hero" aria-labelledby="addRecipeHeading">
+        <p class="eyebrow">Ny oppskrift</p>
+        <h1 id="addRecipeHeading">Legg til egen meal prep</h1>
+        <p class="hero-text">Del ingredienser, fremgangsmåte og næringsinnhold med MatPreppern-fellesskapet.</p>
+      </section>
+
+      <div id="recipeAuthNotice" class="account-card hidden">
+        <h2>Logg inn for å fortsette</h2>
+        <p>Du må være logget inn for å legge til eller redigere en oppskrift.</p>
+        <a id="recipeSignInLink" class="primary-button" href="account.html?next=add-recipe.html">Logg inn eller opprett konto</a>
+      </div>
+
+      <form class="recipe-form hidden" id="recipeForm">
+        <div class="form-grid">
+          <label>
+            Navn på oppskrift
+            <input
+              type="text"
+              id="titleInput"
+              required
+              minlength="2"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="F.eks. Kylling med ris"
+            />
+          </label>
+
+          <label>
+            Tid i minutter
+            <input type="number" id="timeInput" required min="1" max="1440" placeholder="40" />
+          </label>
+
+          <label>
+            Antall porsjoner
+            <input type="number" id="portionsInput" required min="1" max="100" placeholder="4" />
+          </label>
+
+          <label>
+            Kalorier per porsjon
+            <input type="number" id="caloriesInput" required min="1" max="10000" placeholder="650" />
+          </label>
+
+          <label>
+            Protein per porsjon (g)
+            <input type="number" id="proteinInput" required min="0" max="1000" step="0.1" placeholder="48" />
+          </label>
+
+          <label>
+            Karbohydrater per porsjon (g)
+            <input type="number" id="carbsInput" required min="0" max="1000" step="0.1" placeholder="70" />
+          </label>
+
+          <label>
+            Fett per porsjon (g)
+            <input type="number" id="fatInput" required min="0" max="1000" step="0.1" placeholder="18" />
+          </label>
+        </div>
+
+        <label>
+          Kort beskrivelse
+          <textarea
+            id="descriptionInput"
+            required
+            minlength="10"
+            maxlength="1200"
+            placeholder="Kort forklaring av retten"
+          ></textarea>
+        </label>
+
+        <label>
+          Ingredienser
+          <span class="field-help" id="ingredientsHelp">
+            Én ingrediens per linje: mengde | enhet | navn. Desimaltall kan skrives med komma.
+          </span>
+          <textarea
+            id="ingredientsInput"
+            required
+            maxlength="6000"
+            aria-describedby="ingredientsHelp"
+            placeholder="800 | g | Kyllingfilet&#10;300 | g | Ris&#10;400 | g | Grønnsaker"
+          ></textarea>
+        </label>
+
+        <label>
+          Fremgangsmåte
+          <span class="field-help" id="instructionsHelp">Skriv ett steg per linje.</span>
+          <textarea
+            id="instructionsInput"
+            required
+            maxlength="6000"
+            aria-describedby="instructionsHelp"
+            placeholder="Kok risen.&#10;Stek kyllingen.&#10;Fordel i matbokser."
+          ></textarea>
+        </label>
+
+        <label>
+          Meal prep-notat
+          <textarea
+            id="prepNoteInput"
+            required
+            maxlength="800"
+            placeholder="F.eks. Holder seg fint i kjøleskapet i 3–4 dager."
+          ></textarea>
+        </label>
+
+        <label>
+          Bilde av retten (valgfritt)
+          <span class="field-help" id="imageHelp">JPEG, PNG eller WebP. Maks 5 MB.</span>
+          <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="imageHelp imageMessage" />
+        </label>
+        <p id="imageMessage" class="field-help" role="status"></p>
+        <img id="imagePreview" class="image-preview hidden" alt="Forhåndsvisning av valgt oppskriftsbilde" />
+        <label id="removeImageLabel" class="hidden"><input id="removeImageInput" type="checkbox" /> Fjern eksisterende bilde</label>
+
+        <label>
+          Kosthold
+          <select id="dietInput">
+            <option value="alle">Ingen spesifikk diett</option>
+            <option value="vegetar">Vegetar</option>
+            <option value="vegansk">Vegansk</option>
+          </select>
+        </label>
+
+        <fieldset class="tag-fieldset allergen-fieldset">
+          <legend>Allergener som retten inneholder</legend>
+          <p class="field-help">Velg bare allergener du kjenner til. Brukere må alltid kontrollere ingrediensene selv.</p>
+          <label><input type="checkbox" name="allergens" value="gluten" /> Gluten</label>
+          <label><input type="checkbox" name="allergens" value="melk" /> Melk</label>
+          <label><input type="checkbox" name="allergens" value="egg" /> Egg</label>
+          <label><input type="checkbox" name="allergens" value="notter" /> Nøtter</label>
+          <label><input type="checkbox" name="allergens" value="peanotter" /> Peanøtter</label>
+          <label><input type="checkbox" name="allergens" value="soya" /> Soya</label>
+          <label><input type="checkbox" name="allergens" value="fisk" /> Fisk</label>
+          <label><input type="checkbox" name="allergens" value="skalldyr" /> Skalldyr</label>
+          <label><input type="checkbox" name="allergens" value="sesam" /> Sesam</label>
+          <label><input type="checkbox" name="allergens" value="selleri" /> Selleri</label>
+          <label><input type="checkbox" name="allergens" value="sennep" /> Sennep</label>
+        </fieldset>
+
+        <fieldset class="tag-fieldset">
+          <legend>Kategorier</legend>
+          <label><input type="checkbox" name="tags" value="proteinrik" /> Proteinrik</label>
+          <label><input type="checkbox" name="tags" value="lavkalori" /> Lavkalori</label>
+          <label><input type="checkbox" name="tags" value="student" /> Student</label>
+          <label><input type="checkbox" name="tags" value="budsjett" /> Budsjett</label>
+          <label><input type="checkbox" name="tags" value="rask" /> Rask</label>
+          <label><input type="checkbox" name="tags" value="meal prep" checked /> Meal prep</label>
+        </fieldset>
+
+        <div class="item-actions">
+          <button type="submit" class="primary-button" id="submitRecipeButton">Lagre oppskrift</button>
+          <button type="button" class="secondary-button hidden" id="cancelEditButton">Avbryt redigering</button>
+        </div>
+
+        <p class="form-message" id="formMessage" role="status" aria-live="polite" tabindex="-1"></p>
+      </form>
+    </main>
+
+    <noscript>MatPreppern krever JavaScript for å lagre oppskrifter.</noscript>
+    <script type="module" src="js/auth-nav.js"></script>
+    <script type="module" src="js/add-recipe.js"></script>
+  </body>
+</html>

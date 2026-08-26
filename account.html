@@ -17,6 +17,7 @@
           <a href="index.html#recipes">Oppskrifter</a>
           <a href="planner.html">Planlegger</a>
           <a href="community-notes.html">Community Notes</a>
+          <a href="add-recipe.html">Legg til oppskrift</a>
           <a href="account.html" aria-current="page" data-auth-label>Logg inn</a>
         </div>
       </nav>
@@ -26,12 +27,12 @@
       <section class="account-hero" aria-labelledby="accountTitle">
         <p class="eyebrow">Din MatPreppern</p>
         <h1 id="accountTitle">Konto og oppskrifter</h1>
-        <p class="hero-text">Logg inn for å lagre, redigere og synkronisere innholdet ditt.</p>
+        <p class="hero-text">Administrer oppskrifter, favoritter og MatPreppern-kontoen din.</p>
       </section>
 
       <p id="accountStatus" class="data-status" role="status" aria-live="polite" tabindex="-1"></p>
 
-      <section id="guestAccount" class="account-grid" aria-label="Registrering og innlogging">
+      <section id="guestAccount" class="account-grid hidden" aria-label="Registrering og innlogging">
         <form id="signInForm" class="account-card">
           <h2>Logg inn</h2>
           <label>E-post<input id="signInEmail" type="email" autocomplete="email" required /></label>
@@ -81,7 +82,7 @@
         <section class="account-list-section" aria-labelledby="myRecipesTitle">
           <div class="section-heading">
             <div><p class="eyebrow">Ditt innhold</p><h2 id="myRecipesTitle">Mine oppskrifter</h2></div>
-            <a class="primary-button" href="index.html#add-recipe">Ny oppskrift</a>
+            <a class="primary-button" href="add-recipe.html">Ny oppskrift</a>
           </div>
           <div id="myRecipeList" class="account-item-list" aria-busy="true"></div>
         </section>

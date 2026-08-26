@@ -35,6 +35,7 @@ const adminRoleBadge = document.querySelector("#adminRoleBadge");
 let renderRequest = 0;
 let adminRecipes = [];
 let adminModerationByRecipe = new Map();
+let passwordRecoveryMode = false;
 
 function goToRequestedPage() {
   const requested = new URLSearchParams(window.location.search).get("next");
@@ -63,7 +64,7 @@ function renderRecipeItems(element, recipes, own = false) {
         <h3><a href="recipe.html?id=${recipe.id}">${escapeHtml(recipe.title)}</a></h3>
         <p>${recipe.time} min · ${recipe.portions} ${recipe.portions === 1 ? "porsjon" : "porsjoner"}</p>
       </div>
-      ${own ? `<div class="item-actions"><a class="secondary-button" href="index.html?edit=${recipe.id}#add-recipe">Rediger</a><button class="danger-button" type="button" data-delete-recipe="${recipe.id}">Slett</button></div>` : ""}
+      ${own ? `<div class="item-actions"><a class="secondary-button" href="add-recipe.html?edit=${recipe.id}">Rediger</a><button class="danger-button" type="button" data-delete-recipe="${recipe.id}">Slett</button></div>` : ""}
     </article>
   `).join("");
 }
@@ -154,9 +155,11 @@ function renderAdminRecipes() {
 
 async function renderAuthState(user) {
   const request = ++renderRequest;
-  guestAccount.classList.toggle("hidden", Boolean(user));
-  signedInAccount.classList.toggle("hidden", !user);
-  if (!user) {
+  guestAccount.classList.toggle("hidden", Boolean(user) || passwordRecoveryMode);
+  passwordRecovery.classList.toggle("hidden", !passwordRecoveryMode);
+  signedInAccount.classList.toggle("hidden", !user || passwordRecoveryMode);
+
+  if (!user || passwordRecoveryMode) {
     adminRoleBadge.classList.add("hidden");
     adminPanel.classList.add("hidden");
     return;
@@ -251,8 +254,12 @@ document.querySelector("#passwordRecoveryForm").addEventListener("submit", async
   }
   try {
     await handleAuthForm(event.currentTarget, () => updatePassword(password), "Oppdaterer …");
-    passwordRecovery.classList.add("hidden");
+    passwordRecoveryMode = false;
+    const recoveryUrl = new URL(window.location.href);
+    recoveryUrl.searchParams.delete("recovery");
+    history.replaceState(null, "", `${recoveryUrl.pathname}${recoveryUrl.search}${recoveryUrl.hash}`);
     setStatus("Passordet er oppdatert.");
+    await renderAuthState(await getCurrentUser());
   } catch (error) {
     setStatus(error.message || "Kunne ikke oppdatere passordet.", "error");
   }
@@ -323,14 +330,18 @@ adminRecipeSearch.addEventListener("input", renderAdminRecipes);
 
 onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") {
-    passwordRecovery.classList.remove("hidden");
-    document.querySelector("#newPassword").focus();
+    passwordRecoveryMode = true;
+  } else if (event === "SIGNED_OUT") {
+    passwordRecoveryMode = false;
   }
-  window.setTimeout(() => renderAuthState(session?.user ?? null), 0);
+  window.setTimeout(async () => {
+    await renderAuthState(session?.user ?? null);
+    if (passwordRecoveryMode) document.querySelector("#newPassword").focus();
+  }, 0);
 });
 
 const initialUser = await getCurrentUser();
 if (new URLSearchParams(window.location.search).has("recovery") && initialUser) {
-  passwordRecovery.classList.remove("hidden");
+  passwordRecoveryMode = true;
 }
 await renderAuthState(initialUser);

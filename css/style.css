@@ -559,8 +559,9 @@ input[type="range"] {
   }
 }
 
-.hidden {
-  display: none;
+.hidden,
+[hidden] {
+  display: none !important;
 }
 
 .recipe-detail-section {

@@ -1,9 +1,7 @@
 import {
-  createRecipe,
   fetchRecipes,
   getCurrentUser,
   getRecipeImageUrl,
-  updateRecipe,
 } from "./supabase.js";
 import {
   DEFAULT_FILTERS,
@@ -12,15 +10,11 @@ import {
   formatAmount,
   formatDiet,
   formatTag,
-  parseIngredients,
-  parseInstructions,
 } from "./recipe-utils.js";
 
 let recipes = [];
 let currentUser = null;
 let activeCategory = DEFAULT_FILTERS.category;
-let editingRecipe = null;
-let previewObjectUrl = null;
 
 const recipeFilters = document.querySelector("#recipeFilters");
 const recipeGrid = document.querySelector("#recipeGrid");
@@ -36,12 +30,6 @@ const sortSelect = document.querySelector("#sortSelect");
 const dietSelect = document.querySelector("#dietSelect");
 const allergenSelect = document.querySelector("#allergenSelect");
 const categoryButtons = document.querySelectorAll(".category-button");
-const recipeForm = document.querySelector("#recipeForm");
-const recipeAuthNotice = document.querySelector("#recipeAuthNotice");
-const formMessage = document.querySelector("#formMessage");
-const submitRecipeButton = document.querySelector("#submitRecipeButton");
-const imageInput = document.querySelector("#imageInput");
-const imagePreview = document.querySelector("#imagePreview");
 
 function recipeCountText(count) {
   return count === 1 ? "1 oppskrift" : `${count} oppskrifter`;
@@ -73,7 +61,7 @@ function renderRecipes(recipeList) {
     const emptyState = document.createElement("div");
     emptyState.className = "coming-soon-card empty-recipe-state";
     emptyState.innerHTML = recipes.length === 0
-      ? `<h3>Ingen oppskrifter ennå</h3><p>${currentUser ? "Legg til den første oppskriften i skjemaet nedenfor." : "Logg inn for å legge til den første oppskriften."}</p><a class="secondary-button" href="${currentUser ? "#add-recipe" : "account.html"}">${currentUser ? "Legg til oppskrift" : "Logg inn"}</a>`
+      ? `<h3>Ingen oppskrifter ennå</h3><p>${currentUser ? "Legg til den første oppskriften." : "Logg inn for å legge til den første oppskriften."}</p><a class="secondary-button" href="${currentUser ? "add-recipe.html" : "account.html?next=add-recipe.html"}">${currentUser ? "Legg til oppskrift" : "Logg inn"}</a>`
       : '<h3>Ingen treff</h3><p>Prøv et annet søkeord eller nullstill ett eller flere filtre.</p><button class="secondary-button" id="emptyResetFilters" type="button">Nullstill filtre</button>';
     recipeGrid.appendChild(emptyState);
     document.querySelector("#emptyResetFilters")?.addEventListener("click", () => resetFilters(true));
@@ -141,95 +129,8 @@ function resetFilters(shouldFocusSearch = false) {
   if (shouldFocusSearch) searchInput.focus();
 }
 
-function setFormMessage(message, type = "success") {
-  formMessage.textContent = message;
-  formMessage.classList.toggle("form-message--error", type === "error");
-}
-
-function getRecipeFromForm() {
-  const tags = Array.from(document.querySelectorAll(".tag-fieldset input[name='tags']:checked"))
-    .map((checkbox) => checkbox.value);
-  if (tags.length === 0) throw new Error("Velg minst én kategori.");
-
-  return {
-    title: document.querySelector("#titleInput").value,
-    description: document.querySelector("#descriptionInput").value,
-    time: Number(document.querySelector("#timeInput").value),
-    portions: Number(document.querySelector("#portionsInput").value),
-    calories: Number(document.querySelector("#caloriesInput").value),
-    protein: Number(document.querySelector("#proteinInput").value),
-    carbs: Number(document.querySelector("#carbsInput").value),
-    fat: Number(document.querySelector("#fatInput").value),
-    prepNote: document.querySelector("#prepNoteInput").value,
-    ingredients: parseIngredients(document.querySelector("#ingredientsInput").value),
-    instructions: parseInstructions(document.querySelector("#instructionsInput").value),
-    tags,
-    diet: document.querySelector("#dietInput").value,
-    allergens: Array.from(document.querySelectorAll("input[name='allergens']:checked"))
-      .map((checkbox) => checkbox.value),
-  };
-}
-
-function clearImagePreview() {
-  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
-  previewObjectUrl = null;
-  imagePreview.removeAttribute("src");
-  imagePreview.classList.add("hidden");
-  document.querySelector("#imageMessage").textContent = "";
-}
-
-function showExistingImage(recipe) {
-  clearImagePreview();
-  const url = getRecipeImageUrl(recipe.imagePath);
-  if (!url) return;
-  imagePreview.src = url;
-  imagePreview.classList.remove("hidden");
-  document.querySelector("#imageMessage").textContent = "Nåværende bilde.";
-}
-
-function resetRecipeForm() {
-  recipeForm.reset();
-  editingRecipe = null;
-  clearImagePreview();
-  document.querySelector("#addRecipeHeading").textContent = "Legg til egen meal prep";
-  submitRecipeButton.textContent = "Lagre oppskrift";
-  document.querySelector("#cancelEditButton").classList.add("hidden");
-  document.querySelector("#removeImageLabel").classList.add("hidden");
-  history.replaceState(null, "", `${location.pathname}${location.hash || "#add-recipe"}`);
-}
-
-function fillRecipeForm(recipe) {
-  if (!currentUser || recipe.userId !== currentUser.id) {
-    setFormMessage("Du kan bare redigere dine egne oppskrifter.", "error");
-    return;
-  }
-  editingRecipe = recipe;
-  document.querySelector("#titleInput").value = recipe.title;
-  document.querySelector("#descriptionInput").value = recipe.description;
-  document.querySelector("#timeInput").value = recipe.time;
-  document.querySelector("#portionsInput").value = recipe.portions;
-  document.querySelector("#caloriesInput").value = recipe.calories;
-  document.querySelector("#proteinInput").value = recipe.protein;
-  document.querySelector("#carbsInput").value = recipe.carbs;
-  document.querySelector("#fatInput").value = recipe.fat;
-  document.querySelector("#ingredientsInput").value = recipe.ingredients.map((item) => `${String(item.amount).replace(".", ",")} | ${item.unit} | ${item.name}`).join("\n");
-  document.querySelector("#instructionsInput").value = recipe.instructions.join("\n");
-  document.querySelector("#prepNoteInput").value = recipe.prepNote;
-  document.querySelector("#dietInput").value = recipe.diet;
-  document.querySelectorAll("input[name='tags']").forEach((input) => { input.checked = recipe.tags.includes(input.value); });
-  document.querySelectorAll("input[name='allergens']").forEach((input) => { input.checked = recipe.allergens.includes(input.value); });
-  document.querySelector("#addRecipeHeading").textContent = "Rediger oppskrift";
-  submitRecipeButton.textContent = "Lagre endringer";
-  document.querySelector("#cancelEditButton").classList.remove("hidden");
-  document.querySelector("#removeImageLabel").classList.toggle("hidden", !recipe.imagePath);
-  showExistingImage(recipe);
-}
-
 function updateAuthUI(user) {
   currentUser = user;
-  recipeAuthNotice.classList.toggle("hidden", Boolean(user));
-  recipeForm.classList.toggle("hidden", !user);
-  if (!user && editingRecipe) resetRecipeForm();
   applyFilters();
 }
 
@@ -243,73 +144,6 @@ categoryButtons.forEach((button) => button.addEventListener("click", () => {
   setActiveCategory(button.dataset.category);
   applyFilters();
 }));
-
-imageInput.addEventListener("change", () => {
-  clearImagePreview();
-  const file = imageInput.files[0];
-  if (!file) {
-    if (editingRecipe) showExistingImage(editingRecipe);
-    return;
-  }
-  if (![
-    "image/jpeg", "image/png", "image/webp",
-  ].includes(file.type) || file.size > 5 * 1024 * 1024) {
-    imageInput.value = "";
-    document.querySelector("#imageMessage").textContent = "Velg JPEG, PNG eller WebP under 5 MB.";
-    return;
-  }
-  previewObjectUrl = URL.createObjectURL(file);
-  imagePreview.src = previewObjectUrl;
-  imagePreview.classList.remove("hidden");
-  document.querySelector("#imageMessage").textContent = `Valgt bilde: ${file.name}`;
-});
-
-document.querySelector("#removeImageInput").addEventListener("change", (event) => {
-  if (event.target.checked) clearImagePreview();
-  else if (editingRecipe) showExistingImage(editingRecipe);
-});
-
-document.querySelector("#cancelEditButton").addEventListener("click", resetRecipeForm);
-
-recipeForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setFormMessage("");
-  if (!currentUser) {
-    setFormMessage("Du må logge inn før du kan lagre.", "error");
-    return;
-  }
-  if (!recipeForm.checkValidity()) {
-    recipeForm.reportValidity();
-    return;
-  }
-
-  submitRecipeButton.disabled = true;
-  submitRecipeButton.textContent = "Lagrer …";
-  recipeForm.setAttribute("aria-busy", "true");
-  try {
-    const recipeData = getRecipeFromForm();
-    const savedRecipe = editingRecipe
-      ? await updateRecipe(editingRecipe.id, recipeData, {
-          imageFile: imageInput.files[0] ?? null,
-          removeImage: document.querySelector("#removeImageInput").checked,
-        })
-      : await createRecipe(recipeData, imageInput.files[0] ?? null);
-    recipes = [savedRecipe, ...recipes.filter((recipe) => recipe.id !== savedRecipe.id)];
-    const wasEditing = Boolean(editingRecipe);
-    resetRecipeForm();
-    resetFilters(false);
-    setFormMessage(wasEditing ? "Endringene ble lagret." : "Oppskriften ble lagret i databasen.");
-    formMessage.focus();
-  } catch (error) {
-    console.error("Kunne ikke lagre oppskriften:", error);
-    setFormMessage(error.message || "Kunne ikke lagre oppskriften. Prøv igjen.", "error");
-    formMessage.focus();
-  } finally {
-    submitRecipeButton.disabled = false;
-    submitRecipeButton.textContent = editingRecipe ? "Lagre endringer" : "Lagre oppskrift";
-    recipeForm.removeAttribute("aria-busy");
-  }
-});
 
 const installAppButton = document.querySelector("#installAppButton");
 const installModal = document.querySelector("#installModal");
@@ -381,12 +215,6 @@ async function initializeRecipes() {
     recipeStatus.classList.toggle("data-status--warning", result.source === "cache");
     applyFilters();
 
-    const editId = Number(new URLSearchParams(location.search).get("edit"));
-    if (Number.isSafeInteger(editId) && editId > 0) {
-      const recipe = recipes.find((item) => item.id === editId);
-      if (recipe) fillRecipeForm(recipe);
-      else setFormMessage("Oppskriften finnes ikke eller kan ikke redigeres.", "error");
-    }
   } catch (error) {
     console.error("Kunne ikke hente oppskrifter:", error);
     recipeGrid.setAttribute("aria-busy", "false");

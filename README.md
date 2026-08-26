@@ -8,7 +8,7 @@ som database, autentisering og bildelagring.
 
 - Registrering, e-postbekreftelse, innlogging, utlogging og glemt passord
 - Offentlige oppskrifter med egne, delbare URL-er
-- Opprette, redigere og slette egne oppskrifter
+- Opprette og redigere egne oppskrifter på en egen, ryddig side, samt slette dem fra Min side
 - Valgfritt oppskriftsbilde i Supabase Storage
 - Favoritter som følger den innloggede brukeren
 - Måltidsplan som lagres lokalt og synkroniseres med kontoen

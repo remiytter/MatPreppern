@@ -21,16 +21,17 @@ test("bruker Supabase i stedet for standardoppskrifter", async () => {
 });
 
 test("har sentrale tilgjengelighetsmekanismer", async () => {
-  const [indexHtml, plannerHtml, accountHtml, recipeHtml, communityNotesHtml, styleSheet] = await Promise.all([
+  const [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml, styleSheet] = await Promise.all([
     readProjectFile("index.html"),
     readProjectFile("planner.html"),
     readProjectFile("account.html"),
+    readProjectFile("add-recipe.html"),
     readProjectFile("recipe.html"),
     readProjectFile("community-notes.html"),
     readProjectFile("css/style.css"),
   ]);
 
-  for (const html of [indexHtml, plannerHtml, accountHtml, recipeHtml, communityNotesHtml]) {
+  for (const html of [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml]) {
     assert.match(html, /class="skip-link"/);
     assert.match(html, /<main id="main-content">/);
     assert.match(html, /aria-live="polite"/);
@@ -41,10 +42,34 @@ test("har sentrale tilgjengelighetsmekanismer", async () => {
   assert.match(styleSheet, /:focus-visible/);
   assert.match(styleSheet, /prefers-reduced-motion/);
 
-  for (const html of [indexHtml, plannerHtml, accountHtml, recipeHtml, communityNotesHtml]) {
+  for (const html of [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml]) {
     const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
     assert.equal(new Set(ids).size, ids.length, "HTML-siden skal ikke ha dupliserte id-er");
   }
+});
+
+test("holder kontovisning og oppskriftsskjema ryddig etter innlogging", async () => {
+  const [indexHtml, accountHtml, addRecipeHtml, accountScript, addRecipeScript, styleSheet, serviceWorker] = await Promise.all([
+    readProjectFile("index.html"),
+    readProjectFile("account.html"),
+    readProjectFile("add-recipe.html"),
+    readProjectFile("js/account.js"),
+    readProjectFile("js/add-recipe.js"),
+    readProjectFile("css/style.css"),
+    readProjectFile("sw.js"),
+  ]);
+
+  assert.doesNotMatch(indexHtml, /id="recipeForm"/);
+  assert.match(indexHtml, /href="add-recipe\.html"/);
+  assert.match(addRecipeHtml, /id="recipeForm"/);
+  assert.match(addRecipeHtml, /id="recipeAuthNotice" class="account-card hidden"/);
+  assert.match(accountHtml, /id="guestAccount" class="account-grid hidden"/);
+  assert.match(accountScript, /passwordRecoveryMode/);
+  assert.match(addRecipeScript, /createRecipe/);
+  assert.match(addRecipeScript, /updateRecipe/);
+  assert.match(styleSheet, /\.hidden,\s*\[hidden\]\s*{\s*display:\s*none\s*!important;/s);
+  assert.match(serviceWorker, /add-recipe\.html/);
+  assert.match(serviceWorker, /js\/add-recipe\.js/);
 });
 
 test("har sikker adminstyrt fremheving og Community Notes", async () => {
