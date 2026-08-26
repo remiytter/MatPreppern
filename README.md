@@ -12,14 +12,15 @@ som database, autentisering og bildelagring.
 - Valgfritt oppskriftsbilde i Supabase Storage
 - Favoritter som følger den innloggede brukeren
 - Måltidsplan som lagres lokalt og synkroniseres med kontoen
-- Rapportering og et administratorpanel for moderering
+- Rapportering med «Mine rapporter», status, adminsvar og varsler i appen
+- Administratorpanel med nye rapporter, behandling og arkiv uten tap av historikk
 - Egen, tildelbar MatPreppern-adminrolle med databasehåndhevede rettigheter
 - Adminstyrt fremheving av oppskrifter
 - Egen Community Notes-side med publisering og kladder for administratorer
 - Søk i navn, beskrivelse, ingredienser, allergener og kategorier
 - Filtrering på kalorier, protein, tid, kategori, kosthold og allergener
 - Tastaturnavigasjon, statusmeldinger, synlig fokus, redusert bevegelse og
-  semantiske skjemaer/dialoger
+  semantiske skjemaer/dialoger, samt en tilgjengelig mobilmeny
 - Lokal lesecache for offentlige oppskrifter ved nettverksfeil
 
 ## Starte prosjektet
@@ -43,6 +44,8 @@ tilgangen begrenses av Postgres-rettigheter og Row Level Security.
 - `supabase/schema.sql` er komplett skjema for et nytt prosjekt.
 - `supabase/migration-v2.sql` viser migreringen fra den første anonyme versjonen.
 - `supabase/migration-v3-admin-content.sql` legger til fremheving og Community Notes.
+- `supabase/migration-v4-report-workflow.sql` legger til rapportstatus, adminsvar,
+  varsler og arkivering.
 - Storage-bucketen `recipe-images` er offentlig for visning, men opplasting og
   sletting krever innlogging og riktig eier.
 
@@ -57,6 +60,8 @@ I Supabase Dashboard, åpne **Authentication → URL Configuration**:
    innebygde e-posttjeneste er bare beregnet på utprøving og kan være begrenset
    til prosjektteamets adresser.
 4. Vurder CAPTCHA og strengere Auth-rate limits før offentlig lansering.
+5. Aktiver **Leaked Password Protection** før offentlig lansering, slik at kjente
+   kompromitterte passord kan avvises.
 
 ### Opprette første administrator
 

@@ -21,31 +21,67 @@ test("bruker Supabase i stedet for standardoppskrifter", async () => {
 });
 
 test("har sentrale tilgjengelighetsmekanismer", async () => {
-  const [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml, styleSheet] = await Promise.all([
+  const [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml, reportsHtml, styleSheet, authNavScript] = await Promise.all([
     readProjectFile("index.html"),
     readProjectFile("planner.html"),
     readProjectFile("account.html"),
     readProjectFile("add-recipe.html"),
     readProjectFile("recipe.html"),
     readProjectFile("community-notes.html"),
+    readProjectFile("reports.html"),
     readProjectFile("css/style.css"),
+    readProjectFile("js/auth-nav.js"),
   ]);
 
-  for (const html of [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml]) {
+  for (const html of [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml, reportsHtml]) {
     assert.match(html, /class="skip-link"/);
     assert.match(html, /<main id="main-content">/);
     assert.match(html, /aria-live="polite"/);
+    assert.match(html, /data-nav-toggle/);
+    assert.match(html, /aria-controls="primaryNav"/);
+    assert.match(html, /id="primaryNav" data-nav-menu/);
   }
 
   assert.match(indexHtml, /aria-pressed="true"/);
   assert.match(plannerHtml, /role="dialog"/);
   assert.match(styleSheet, /:focus-visible/);
   assert.match(styleSheet, /prefers-reduced-motion/);
+  assert.match(authNavScript, /event\.key === "Escape"/);
+  assert.match(authNavScript, /aria-expanded/);
 
-  for (const html of [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml]) {
+  for (const html of [indexHtml, plannerHtml, accountHtml, addRecipeHtml, recipeHtml, communityNotesHtml, reportsHtml]) {
     const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
     assert.equal(new Set(ids).size, ids.length, "HTML-siden skal ikke ha dupliserte id-er");
   }
+});
+
+test("har privat rapportoversikt, adminsvar, varsler og arkiv", async () => {
+  const [schema, migration, reportsHtml, reportsScript, accountHtml, accountScript, supabaseScript, serviceWorker] = await Promise.all([
+    readProjectFile("supabase/schema.sql"),
+    readProjectFile("supabase/migration-v4-report-workflow.sql"),
+    readProjectFile("reports.html"),
+    readProjectFile("js/reports.js"),
+    readProjectFile("account.html"),
+    readProjectFile("js/account.js"),
+    readProjectFile("js/supabase.js"),
+    readProjectFile("sw.js"),
+  ]);
+
+  assert.match(schema, /recipe_title text not null/i);
+  assert.match(schema, /admin_note text not null/i);
+  assert.match(schema, /recipe_report_receipts/i);
+  assert.match(schema, /on delete set null/i);
+  assert.match(schema, /closed_note_required/i);
+  assert.match(migration, /recipe_report_receipts/i);
+  assert.match(reportsHtml, /id="myReportList"/);
+  assert.match(reportsScript, /markReportUpdatesSeen/);
+  assert.match(accountHtml, /id="adminReportFilter"/);
+  assert.match(accountHtml, /id="reportUpdateNotice"/);
+  assert.match(accountScript, /data-report-form/);
+  assert.match(supabaseScript, /fetchMyReports/);
+  assert.match(supabaseScript, /recipe_title: recipeTitle\.trim\(\)/);
+  assert.match(serviceWorker, /reports\.html/);
+  assert.match(serviceWorker, /js\/reports\.js/);
 });
 
 test("holder kontovisning og oppskriftsskjema ryddig etter innlogging", async () => {

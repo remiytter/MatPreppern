@@ -1,4 +1,4 @@
-const CACHE_NAME = "matpreppern-v11";
+const CACHE_NAME = "matpreppern-v12";
 const SUPABASE_LIBRARY_URL =
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/+esm";
 
@@ -9,6 +9,7 @@ const APP_SHELL = [
   "./account.html",
   "./add-recipe.html",
   "./community-notes.html",
+  "./reports.html",
   "./recipe.html",
   "./css/style.css",
   "./js/index.js",
@@ -16,6 +17,7 @@ const APP_SHELL = [
   "./js/account.js",
   "./js/add-recipe.js",
   "./js/community-notes.js",
+  "./js/reports.js",
   "./js/auth-nav.js",
   "./js/recipe-page.js",
   "./js/recipe-utils.js",

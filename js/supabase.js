@@ -146,6 +146,21 @@ function mapCommunityNote(data) {
   };
 }
 
+function mapReport(data, seenAt = null) {
+  return {
+    id: Number(data.id),
+    recipeId: data.recipe_id === null ? null : Number(data.recipe_id),
+    recipeTitle: data.recipe_title,
+    reason: data.reason,
+    details: data.details,
+    status: data.status,
+    adminNote: data.admin_note,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    seenAt,
+  };
+}
+
 export async function getCurrentUser() {
   const client = getSupabaseClient();
   const { data, error } = await client.auth.getUser();
@@ -486,15 +501,85 @@ export async function deleteSavedMealPlan() {
   if (error) throw error;
 }
 
-export async function reportRecipe(recipeId, reason, details) {
+export async function reportRecipe(recipeId, recipeTitle, reason, details) {
   const user = await requireUser();
   const { error } = await getSupabaseClient().from("recipe_reports").insert({
     recipe_id: recipeId,
+    recipe_title: recipeTitle.trim(),
     reporter_id: user.id,
     reason,
     details: details.trim(),
   });
   if (error) throw error;
+}
+
+export async function fetchMyReports() {
+  const user = await requireUser();
+  const client = getSupabaseClient();
+  const [reportsResult, receiptsResult] = await Promise.all([
+    client
+      .from("recipe_reports")
+      .select("id,recipe_id,recipe_title,reason,details,status,admin_note,created_at,updated_at")
+      .eq("reporter_id", user.id)
+      .order("created_at", { ascending: false }),
+    client
+      .from("recipe_report_receipts")
+      .select("report_id,seen_at")
+      .eq("user_id", user.id),
+  ]);
+
+  if (reportsResult.error) throw reportsResult.error;
+  if (receiptsResult.error) throw receiptsResult.error;
+
+  const seenByReport = new Map(
+    (receiptsResult.data ?? []).map((receipt) => [Number(receipt.report_id), receipt.seen_at])
+  );
+  return (reportsResult.data ?? []).map((report) =>
+    mapReport(report, seenByReport.get(Number(report.id)) ?? null)
+  );
+}
+
+export async function markReportUpdatesSeen(reportIds) {
+  const ids = [...new Set(reportIds)]
+    .map(Number)
+    .filter((id) => Number.isSafeInteger(id) && id > 0);
+  if (ids.length === 0) return;
+
+  const user = await requireUser();
+  const client = getSupabaseClient();
+  const seenAt = new Date().toISOString();
+  const { data: existing, error: readError } = await client
+    .from("recipe_report_receipts")
+    .select("report_id")
+    .eq("user_id", user.id)
+    .in("report_id", ids);
+  if (readError) throw readError;
+
+  const existingIds = new Set((existing ?? []).map((receipt) => Number(receipt.report_id)));
+  const idsToUpdate = ids.filter((id) => existingIds.has(id));
+  const idsToInsert = ids.filter((id) => !existingIds.has(id));
+  const operations = [];
+
+  if (idsToUpdate.length > 0) {
+    operations.push(
+      client
+        .from("recipe_report_receipts")
+        .update({ seen_at: seenAt })
+        .eq("user_id", user.id)
+        .in("report_id", idsToUpdate)
+    );
+  }
+  if (idsToInsert.length > 0) {
+    operations.push(
+      client
+        .from("recipe_report_receipts")
+        .insert(idsToInsert.map((reportId) => ({ report_id: reportId, user_id: user.id, seen_at: seenAt })))
+    );
+  }
+
+  const results = await Promise.all(operations);
+  const failed = results.find((result) => result.error);
+  if (failed?.error) throw failed.error;
 }
 
 export async function isCurrentUserAdmin() {
@@ -512,16 +597,24 @@ export async function isCurrentUserAdmin() {
 export async function fetchAdminReports() {
   const { data, error } = await getSupabaseClient()
     .from("recipe_reports")
-    .select("id,recipe_id,reason,details,status,created_at")
+    .select("id,recipe_id,recipe_title,reason,details,status,admin_note,created_at,updated_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((report) => mapReport(report));
 }
 
-export async function setReportStatus(reportId, status) {
+export async function setReportStatus(reportId, status, adminNote = "") {
+  const allowedStatuses = new Set(["open", "reviewed", "closed"]);
+  const cleanNote = adminNote.trim();
+  if (!allowedStatuses.has(status)) throw new Error("Ugyldig rapportstatus.");
+  if (cleanNote.length > 1000) throw new Error("Adminnotatet kan være maksimalt 1000 tegn.");
+  if (status === "closed" && cleanNote.length < 3) {
+    throw new Error("Skriv et kort svar til innsenderen før rapporten arkiveres.");
+  }
+
   const { error } = await getSupabaseClient()
     .from("recipe_reports")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, admin_note: cleanNote, updated_at: new Date().toISOString() })
     .eq("id", reportId);
   if (error) throw error;
 }

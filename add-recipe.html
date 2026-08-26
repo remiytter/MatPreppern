@@ -13,7 +13,10 @@
     <header class="site-header">
       <nav class="navbar" aria-label="Hovedmeny">
         <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
-        <div class="nav-links">
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Åpne meny" data-nav-toggle>
+          <span class="nav-toggle-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+        <div class="nav-links" id="primaryNav" data-nav-menu>
           <a href="index.html#recipes">Oppskrifter</a>
           <a href="planner.html">Planlegger</a>
           <a href="community-notes.html">Community Notes</a>

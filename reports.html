@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <title>Mine rapporter | MatPreppern</title>
+    <meta name="description" content="Se status og svar fra MatPreppern på rapporter du har sendt inn." />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Hopp til hovedinnhold</a>
+    <header class="site-header">
+      <nav class="navbar" aria-label="Hovedmeny">
+        <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Åpne meny" data-nav-toggle>
+          <span class="nav-toggle-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+        <div class="nav-links" id="primaryNav" data-nav-menu>
+          <a href="index.html#recipes">Oppskrifter</a>
+          <a href="planner.html">Planlegger</a>
+          <a href="community-notes.html">Community Notes</a>
+          <a href="add-recipe.html">Legg til oppskrift</a>
+          <a href="account.html" data-auth-label>Min konto</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="account-hero" aria-labelledby="reportsPageTitle">
+        <p class="eyebrow">Din aktivitet</p>
+        <h1 id="reportsPageTitle">Mine rapporter</h1>
+        <p class="hero-text">Følg behandlingen av rapportene dine og les svar fra MatPreppern-teamet.</p>
+      </section>
+
+      <p id="reportsStatus" class="data-status" role="status" aria-live="polite" tabindex="-1">Henter rapporter …</p>
+
+      <section id="reportsGuest" class="account-card hidden" aria-labelledby="reportsGuestTitle">
+        <h2 id="reportsGuestTitle">Logg inn for å se rapportene dine</h2>
+        <p>Rapporter er private og kan bare leses av deg og MatPreppern-administratorer.</p>
+        <a class="primary-button" href="account.html?next=reports.html">Logg inn eller opprett konto</a>
+      </section>
+
+      <section id="reportsSignedIn" class="account-list-section hidden" aria-labelledby="reportsListTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">Privat oversikt</p><h2 id="reportsListTitle">Innsendte rapporter</h2></div>
+          <label class="compact-filter" for="reportFilter">
+            Vis
+            <select id="reportFilter">
+              <option value="all">Alle rapporter</option>
+              <option value="open">Åpne</option>
+              <option value="reviewed">Vurdert</option>
+              <option value="closed">Lukket / arkivert</option>
+            </select>
+          </label>
+        </div>
+        <p id="reportCount" class="field-help" aria-live="polite"></p>
+        <div id="myReportList" class="account-item-list" aria-busy="true"></div>
+      </section>
+    </main>
+
+    <script type="module" src="js/auth-nav.js"></script>
+    <script type="module" src="js/reports.js"></script>
+  </body>
+</html>

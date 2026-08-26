@@ -124,7 +124,7 @@ reportForm.addEventListener("submit", async (event) => {
   const submitButton = reportForm.querySelector("button[type='submit']");
   submitButton.disabled = true;
   try {
-    await reportRecipe(recipe.id, document.querySelector("#reportReason").value, document.querySelector("#reportDetails").value);
+    await reportRecipe(recipe.id, recipe.title, document.querySelector("#reportReason").value, document.querySelector("#reportDetails").value);
     document.querySelector("#reportMessage").textContent = "Rapporten er sendt. Takk for at du sier fra.";
     reportForm.reset();
     window.setTimeout(() => reportDialog.close(), 900);

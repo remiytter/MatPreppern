@@ -13,7 +13,10 @@
     <header class="site-header">
       <nav class="navbar" aria-label="Hovedmeny">
         <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
-        <div class="nav-links">
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Åpne meny" data-nav-toggle>
+          <span class="nav-toggle-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+        <div class="nav-links" id="primaryNav" data-nav-menu>
           <a href="index.html#recipes">Oppskrifter</a>
           <a href="planner.html">Planlegger</a>
           <a href="community-notes.html">Community Notes</a>
@@ -76,7 +79,18 @@
             <p id="accountEmail"></p>
             <p id="adminRoleBadge" class="admin-role-badge hidden">MatPreppern-admin</p>
           </div>
-          <button id="signOutButton" class="secondary-button" type="button">Logg ut</button>
+          <div class="item-actions">
+            <a class="secondary-button" href="reports.html">Mine rapporter</a>
+            <button id="signOutButton" class="secondary-button" type="button">Logg ut</button>
+          </div>
+        </section>
+
+        <section id="reportUpdateNotice" class="account-card report-update-notice hidden" aria-labelledby="reportUpdateTitle" role="status" aria-live="polite">
+          <div>
+            <p class="eyebrow">Rapportoppdatering</p>
+            <h2 id="reportUpdateTitle">Du har fått svar</h2>
+            <p><span id="reportUpdateCount"></span> <a href="reports.html">Se mine rapporter</a></p>
+          </div>
         </section>
 
         <section class="account-list-section" aria-labelledby="myRecipesTitle">
@@ -111,7 +125,21 @@
 
           <section class="admin-section" aria-labelledby="reportsTitle">
             <h3 id="reportsTitle">Rapporter og moderering</h3>
-            <p class="field-help">Skjulte oppskrifter er fortsatt synlige for eieren og administratorer.</p>
+            <p class="field-help">Svar til innsenderen, oppdater status og skjul oppskriften ved behov. Lukkede rapporter arkiveres, men slettes ikke.</p>
+            <p id="adminReportNotice" class="admin-notice" role="status" aria-live="polite"></p>
+            <div class="admin-report-toolbar">
+              <label class="compact-filter" for="adminReportFilter">
+                Vis
+                <select id="adminReportFilter">
+                  <option value="active">Aktive rapporter</option>
+                  <option value="open">Bare åpne</option>
+                  <option value="reviewed">Bare vurderte</option>
+                  <option value="closed">Arkiv</option>
+                  <option value="all">Alle rapporter</option>
+                </select>
+              </label>
+              <p id="adminReportCount" class="field-help" aria-live="polite"></p>
+            </div>
             <div id="adminReportList" class="account-item-list" aria-busy="true"></div>
           </section>
         </section>

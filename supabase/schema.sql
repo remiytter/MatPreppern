@@ -86,18 +86,34 @@ create table if not exists public.meal_plans (
 
 create table if not exists public.recipe_reports (
   id bigint generated always as identity primary key,
-  recipe_id bigint not null references public.recipes(id) on delete cascade,
+  recipe_id bigint references public.recipes(id) on delete set null,
+  recipe_title text not null,
   reporter_id uuid not null references auth.users(id) on delete cascade,
   reason text not null,
   details text not null default '',
   status text not null default 'open',
+  admin_note text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint recipe_reports_recipe_title_length check (char_length(recipe_title) between 2 and 120),
   constraint recipe_reports_reason_allowed check (reason in ('spam', 'stotende', 'feil', 'annet')),
   constraint recipe_reports_details_length check (char_length(details) <= 1000),
   constraint recipe_reports_status_allowed check (status in ('open', 'reviewed', 'closed')),
+  constraint recipe_reports_admin_note_length check (char_length(admin_note) <= 1000),
+  constraint recipe_reports_closed_note_required check (
+    status <> 'closed' or char_length(btrim(admin_note)) >= 3
+  ),
   constraint recipe_reports_once_per_user unique (recipe_id, reporter_id)
 );
+
+create table if not exists public.recipe_report_receipts (
+  report_id bigint primary key references public.recipe_reports(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  seen_at timestamptz not null default now()
+);
+
+comment on table public.recipe_report_receipts is
+  'Tracks when a reporter last viewed updates to their own report.';
 
 create table if not exists public.recipe_moderation (
   recipe_id bigint primary key references public.recipes(id) on delete cascade,
@@ -133,6 +149,7 @@ alter table public.recipes enable row level security;
 alter table public.recipe_favorites enable row level security;
 alter table public.meal_plans enable row level security;
 alter table public.recipe_reports enable row level security;
+alter table public.recipe_report_receipts enable row level security;
 alter table public.recipe_moderation enable row level security;
 alter table public.recipe_features enable row level security;
 alter table public.community_notes enable row level security;
@@ -148,6 +165,7 @@ create index if not exists recipes_published_search_vector_idx on public.recipes
 create index if not exists recipe_favorites_recipe_id_idx on public.recipe_favorites (recipe_id);
 create index if not exists recipe_reports_reporter_id_idx on public.recipe_reports (reporter_id);
 create index if not exists recipe_reports_status_created_at_idx on public.recipe_reports (status, created_at desc);
+create index if not exists recipe_report_receipts_user_id_idx on public.recipe_report_receipts (user_id);
 create index if not exists recipe_moderation_moderated_by_idx on public.recipe_moderation (moderated_by);
 create index if not exists recipe_features_featured_at_idx on public.recipe_features (featured_at desc);
 create index if not exists recipe_features_featured_by_idx on public.recipe_features (featured_by);
@@ -160,6 +178,7 @@ revoke all on table public.recipes from anon, authenticated;
 revoke all on table public.recipe_favorites from anon, authenticated;
 revoke all on table public.meal_plans from anon, authenticated;
 revoke all on table public.recipe_reports from anon, authenticated;
+revoke all on table public.recipe_report_receipts from anon, authenticated;
 revoke all on table public.recipe_moderation from anon, authenticated;
 revoke all on table public.recipe_features from anon, authenticated;
 revoke all on table public.community_notes from anon, authenticated;
@@ -183,8 +202,21 @@ grant usage, select on sequence public.recipes_id_seq to authenticated;
 
 grant select, insert, delete on public.recipe_favorites to authenticated;
 grant select, insert, update, delete on public.meal_plans to authenticated;
-grant select, insert, update, delete on public.recipe_reports to authenticated;
+grant select (
+  id, recipe_id, recipe_title, reporter_id, reason, details, status,
+  admin_note, created_at, updated_at
+) on public.recipe_reports to authenticated;
+grant insert (
+  recipe_id, recipe_title, reporter_id, reason, details
+) on public.recipe_reports to authenticated;
+grant update (
+  status, admin_note, updated_at
+) on public.recipe_reports to authenticated;
+grant delete on public.recipe_reports to authenticated;
 grant usage, select on sequence public.recipe_reports_id_seq to authenticated;
+grant select on public.recipe_report_receipts to authenticated;
+grant insert (report_id, user_id, seen_at) on public.recipe_report_receipts to authenticated;
+grant update (seen_at) on public.recipe_report_receipts to authenticated;
 grant select (recipe_id, status) on public.recipe_moderation to anon, authenticated;
 grant insert, update, delete on public.recipe_moderation to authenticated;
 
@@ -259,7 +291,16 @@ create policy "Users manage their meal plan" on public.meal_plans
 
 create policy "Users can create their own reports" on public.recipe_reports
   for insert to authenticated
-  with check ((select auth.uid()) = reporter_id and status = 'open');
+  with check (
+    (select auth.uid()) = reporter_id
+    and status = 'open'
+    and admin_note = ''
+    and exists (
+      select 1 from public.recipes
+      where recipes.id = recipe_id
+        and recipes.title = recipe_title
+    )
+  );
 
 create policy "Users and admins read reports" on public.recipe_reports
   for select to authenticated
@@ -276,6 +317,47 @@ create policy "Admins update reports" on public.recipe_reports
 create policy "Admins delete reports" on public.recipe_reports
   for delete to authenticated
   using (exists (select 1 from public.admins where admins.user_id = (select auth.uid())));
+
+create policy "Users read their report receipts" on public.recipe_report_receipts
+  for select to authenticated
+  using (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.recipe_reports reports
+      where reports.id = report_id
+        and reports.reporter_id = (select auth.uid())
+    )
+  );
+
+create policy "Users create their report receipts" on public.recipe_report_receipts
+  for insert to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.recipe_reports reports
+      where reports.id = report_id
+        and reports.reporter_id = (select auth.uid())
+    )
+  );
+
+create policy "Users update their report receipts" on public.recipe_report_receipts
+  for update to authenticated
+  using (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.recipe_reports reports
+      where reports.id = report_id
+        and reports.reporter_id = (select auth.uid())
+    )
+  )
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.recipe_reports reports
+      where reports.id = report_id
+        and reports.reporter_id = (select auth.uid())
+    )
+  );
 
 create policy "Moderation status is readable" on public.recipe_moderation
   for select to anon, authenticated using (true);
