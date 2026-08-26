@@ -20,6 +20,8 @@ const recipes = [
     calories: 620,
     protein: 48,
     tags: ["proteinrik", "meal prep"],
+    diet: "alle",
+    allergens: ["melk"],
     ingredients: [{ name: "Jasminris", amount: 300, unit: "g" }],
     createdAt: "2026-08-24T12:00:00Z",
   },
@@ -33,6 +35,8 @@ const recipes = [
     calories: 410,
     protein: 25,
     tags: ["rask", "student"],
+    diet: "vegansk",
+    allergens: [],
     ingredients: [{ name: "Havregryn", amount: 120, unit: "g" }],
     createdAt: "2026-08-25T12:00:00Z",
   },
@@ -66,6 +70,25 @@ test("sorterer alfabetisk med norsk språk", () => {
   });
 
   assert.deepEqual(result.map((recipe) => recipe.id), [1, 2]);
+});
+
+test("viser fremhevede oppskrifter først ved standardsortering", () => {
+  const result = filterAndSortRecipes(
+    recipes.map((recipe) => ({ ...recipe, isFeatured: recipe.id === 1 })),
+    DEFAULT_FILTERS
+  );
+
+  assert.deepEqual(result.map((recipe) => recipe.id), [1, 2]);
+});
+
+test("filtrerer på kosthold og ekskludert allergen", () => {
+  const result = filterAndSortRecipes(recipes, {
+    ...DEFAULT_FILTERS,
+    diet: "vegetar",
+    excludedAllergen: "melk",
+  });
+
+  assert.deepEqual(result.map((recipe) => recipe.id), [2]);
 });
 
 test("tolker ingredienser og norske desimaltall", () => {
@@ -120,6 +143,7 @@ test("avviser feilformede databaserader før de når grensesnittet", () => {
 test("normaliserer en gyldig databaserad", () => {
   const databaseRecipe = {
     id: "10",
+    user_id: "11111111-1111-4111-8111-111111111111",
     title: "Gyldig oppskrift",
     description: "En fullstendig oppskrift.",
     time_minutes: 20,
@@ -132,13 +156,20 @@ test("normaliserer en gyldig databaserad", () => {
     instructions: [" Kok risen. "],
     prep_note: "Test",
     tags: ["meal prep"],
+    diet: "vegetar",
+    allergens: ["melk"],
+    image_path: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.webp",
+    is_published: true,
     created_at: "2026-08-25T12:00:00Z",
+    updated_at: "2026-08-26T12:00:00Z",
   };
 
   const result = mapRecipeFromDatabase(databaseRecipe);
 
   assert.equal(result.id, 10);
   assert.equal(result.protein, 30);
+  assert.equal(result.diet, "vegetar");
+  assert.deepEqual(result.allergens, ["melk"]);
   assert.deepEqual(result.ingredients, [
     { amount: 200, unit: "g", name: "Ris" },
   ]);

@@ -1,4 +1,10 @@
-import { fetchRecipes } from "./supabase.js";
+import {
+  deleteSavedMealPlan,
+  fetchRecipes,
+  fetchSavedMealPlan,
+  getCurrentUser,
+  saveMealPlanToDatabase,
+} from "./supabase.js";
 import { escapeHtml, normalizeSearchText } from "./recipe-utils.js";
 
 let recipes = [];
@@ -68,6 +74,7 @@ const plannerRecipeSearch = document.querySelector(
 const plannerRecipeStatus = document.querySelector(
   "#plannerRecipeStatus"
 );
+const planSyncStatus = document.querySelector("#planSyncStatus");
 
 const placementMessage = document.querySelector(
   "#placementMessage"
@@ -118,6 +125,8 @@ const shoppingItemCount = document.querySelector(
 );
 
 let mealPlan = null;
+let plannerUser = null;
+let mealPlanSyncTimer = null;
 let selectedRecipeForPlacement = null;
 let selectedRecipeForDistribution = null;
 let lastDialogTrigger = null;
@@ -405,6 +414,25 @@ function saveMealPlan() {
     PLAN_STORAGE_KEY,
     JSON.stringify(mealPlan)
   );
+
+  if (!plannerUser || !mealPlan) {
+    planSyncStatus.textContent = "Planen lagres på denne enheten. Logg inn for synkronisering.";
+    return;
+  }
+
+  planSyncStatus.textContent = "Lagrer planen …";
+  window.clearTimeout(mealPlanSyncTimer);
+  mealPlanSyncTimer = window.setTimeout(async () => {
+    try {
+      await saveMealPlanToDatabase(mealPlan);
+      planSyncStatus.textContent = "Planen er synkronisert med kontoen din.";
+      planSyncStatus.classList.remove("data-status--error");
+    } catch (error) {
+      console.error("Kunne ikke synkronisere planen:", error);
+      planSyncStatus.textContent = "Planen er lagret lokalt, men kunne ikke synkroniseres.";
+      planSyncStatus.classList.add("data-status--error");
+    }
+  }, 500);
 }
 
 function loadMealPlan() {
@@ -1291,6 +1319,18 @@ function resetMealPlan() {
 
   updateDatePreview();
 
+  if (plannerUser) {
+    deleteSavedMealPlan()
+      .then(() => {
+        planSyncStatus.textContent = "Den synkroniserte planen er slettet.";
+      })
+      .catch((error) => {
+        console.error("Kunne ikke slette synkronisert plan:", error);
+        planSyncStatus.textContent = "Planen ble slettet lokalt, men ikke fra kontoen.";
+        planSyncStatus.classList.add("data-status--error");
+      });
+  }
+
   planSetupSection.scrollIntoView({
     behavior: "smooth",
   });
@@ -1669,6 +1709,16 @@ async function initializePlanner() {
   updateDatePreview();
 
   try {
+    plannerUser = await getCurrentUser();
+    planSyncStatus.textContent = plannerUser
+      ? "Henter synkronisert plan …"
+      : "Planen lagres på denne enheten. Logg inn for synkronisering.";
+  } catch (error) {
+    console.error("Kunne ikke lese innloggingsstatus:", error);
+    planSyncStatus.textContent = "Planen lagres på denne enheten.";
+  }
+
+  try {
     const result = await fetchRecipes();
     recipes = result.recipes;
     openRecipePickerButton.disabled = recipes.length === 0;
@@ -1692,6 +1742,35 @@ async function initializePlanner() {
   }
 
   mealPlan = loadMealPlan();
+
+  if (plannerUser) {
+    try {
+      const savedPlan = await fetchSavedMealPlan();
+      const remotePlan = savedPlan?.plan;
+      const remotePlanIsValid =
+        remotePlan &&
+        typeof remotePlan.startDate === "string" &&
+        Number.isInteger(Number(remotePlan.numberOfDays)) &&
+        Array.isArray(remotePlan.mealTypes) &&
+        Array.isArray(remotePlan.selectedRecipes) &&
+        Array.isArray(remotePlan.plannedMeals);
+
+      if (remotePlanIsValid) {
+        mealPlan = remotePlan;
+        localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(mealPlan));
+        planSyncStatus.textContent = "Planen er synkronisert med kontoen din.";
+      } else if (mealPlan) {
+        await saveMealPlanToDatabase(mealPlan);
+        planSyncStatus.textContent = "Den lokale planen er lagret på kontoen din.";
+      } else {
+        planSyncStatus.textContent = "Planen synkroniseres når du oppretter den.";
+      }
+    } catch (error) {
+      console.error("Kunne ikke hente synkronisert plan:", error);
+      planSyncStatus.textContent = "Kunne ikke synkronisere. En lokal plan brukes hvis den finnes.";
+      planSyncStatus.classList.add("data-status--error");
+    }
+  }
 
   if (mealPlan) {
     removeUnavailableRecipesFromPlan();

@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
 
     <title>Planlegger | MatPreppern</title>
 
@@ -24,7 +25,9 @@
         <div class="nav-links">
           <a href="index.html">Oppskrifter</a>
           <a href="planner.html" aria-current="page">Planlegger</a>
+          <a href="community-notes.html">Community Notes</a>
           <a href="index.html#add-recipe">Legg til oppskrift</a>
+          <a href="account.html" data-auth-label>Logg inn</a>
         </div>
       </nav>
     </header>
@@ -51,6 +54,7 @@
       >
         Henter oppskrifter …
       </p>
+      <p class="data-status planner-data-status" id="planSyncStatus" role="status" aria-live="polite"></p>
 
       <section class="plan-setup-section" id="planSetupSection">
         <div class="section-heading">
@@ -259,10 +263,7 @@
           </div>
 
           <ul class="shopping-list" id="shoppingList">
-            <div class="empty-planner-state">
-              <h3>Handlelisten er tom</h3>
-              <p>Legg til oppskrifter i porsjonsbanken.</p>
-            </div>
+            <li class="shopping-list-empty">Legg til oppskrifter i porsjonsbanken.</li>
           </ul>
         </section>
       </section>
@@ -361,6 +362,7 @@
       </section>
     </main>
 
+    <script type="module" src="js/auth-nav.js"></script>
     <script type="module" src="js/planner.js"></script>
   </body>
 </html>

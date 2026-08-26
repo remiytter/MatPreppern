@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <title>Community Notes | MatPreppern</title>
+    <meta name="description" content="Les tips, rettelser og viktige oppdateringer fra MatPreppern-teamet." />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Hopp til hovedinnhold</a>
+    <header class="site-header">
+      <nav class="navbar" aria-label="Hovedmeny">
+        <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
+        <div class="nav-links">
+          <a href="index.html#recipes">Oppskrifter</a>
+          <a href="planner.html">Planlegger</a>
+          <a href="community-notes.html" aria-current="page">Community Notes</a>
+          <a href="account.html" data-auth-label>Logg inn</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="notes-hero" aria-labelledby="notesTitle">
+        <p class="eyebrow">Fra MatPreppern-teamet</p>
+        <h1 id="notesTitle">Community Notes</h1>
+        <p class="hero-text">Tips, rettelser og viktig informasjon som gjør oppskriftene og fellesskapet bedre.</p>
+      </section>
+
+      <p id="notesStatus" class="data-status notes-status" role="status" aria-live="polite">Henter Community Notes …</p>
+
+      <section id="note-editor" class="note-editor-section hidden" aria-labelledby="noteEditorTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">MatPreppern-admin</p>
+            <h2 id="noteEditorTitle">Skriv en Community Note</h2>
+          </div>
+        </div>
+        <form id="communityNoteForm" class="account-card note-editor-form">
+          <label for="noteTitleInput">
+            Tittel
+            <input id="noteTitleInput" type="text" minlength="2" maxlength="120" required />
+          </label>
+          <label for="noteBodyInput">
+            Innhold
+            <textarea id="noteBodyInput" minlength="10" maxlength="5000" rows="8" required></textarea>
+          </label>
+          <label class="checkbox-label" for="notePublishedInput">
+            <input id="notePublishedInput" type="checkbox" />
+            Publiser notatet med en gang
+          </label>
+          <div class="item-actions">
+            <button id="saveNoteButton" class="primary-button" type="submit">Lagre Community Note</button>
+            <button id="cancelNoteEdit" class="secondary-button hidden" type="button">Avbryt redigering</button>
+          </div>
+          <p id="noteFormMessage" class="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="notes-list-section" aria-labelledby="publishedNotesTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Siste nytt</p>
+            <h2 id="publishedNotesTitle">Notater til fellesskapet</h2>
+          </div>
+          <p id="communityNoteCount" aria-live="polite"></p>
+        </div>
+        <div id="communityNoteList" class="community-note-list" aria-busy="true"></div>
+      </section>
+    </main>
+
+    <script type="module" src="js/auth-nav.js"></script>
+    <script type="module" src="js/community-notes.js"></script>
+  </body>
+</html>

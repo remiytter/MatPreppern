@@ -4,6 +4,8 @@ export const DEFAULT_FILTERS = Object.freeze({
   minProtein: 0,
   maxTime: 0,
   category: "all",
+  diet: "all",
+  excludedAllergen: "",
   sort: "newest",
 });
 
@@ -56,6 +58,7 @@ export function mapRecipeFromDatabase(recipe) {
     : [];
   const id = Number(recipe.id);
   const requiredTextValues = [
+    recipe.user_id,
     recipe.title,
     recipe.description,
     recipe.prep_note,
@@ -83,6 +86,7 @@ export function mapRecipeFromDatabase(recipe) {
 
   return {
     id,
+    userId: recipe.user_id,
     title: recipe.title,
     description: recipe.description,
     time: Number(recipe.time_minutes),
@@ -95,7 +99,20 @@ export function mapRecipeFromDatabase(recipe) {
     instructions,
     prepNote: recipe.prep_note,
     tags,
+    diet: ["alle", "vegetar", "vegansk"].includes(recipe.diet)
+      ? recipe.diet
+      : "alle",
+    allergens: Array.isArray(recipe.allergens)
+      ? recipe.allergens.filter((allergen) => typeof allergen === "string")
+      : [],
+    imagePath: typeof recipe.image_path === "string" ? recipe.image_path : null,
+    isPublished: recipe.is_published === true,
+    isFeatured: recipe.is_featured === true,
     createdAt: recipe.created_at,
+    updatedAt:
+      typeof recipe.updated_at === "string"
+        ? recipe.updated_at
+        : recipe.created_at,
   };
 }
 
@@ -110,6 +127,8 @@ function createSearchText(recipe) {
       recipe.description,
       recipe.prepNote,
       ...(recipe.tags ?? []),
+      recipe.diet,
+      ...(recipe.allergens ?? []),
       ...ingredientNames,
     ].join(" ")
   );
@@ -126,18 +145,28 @@ export function filterAndSortRecipes(recipes, filters) {
     const matchesTime = filters.maxTime === 0 || recipe.time <= filters.maxTime;
     const matchesCategory =
       filters.category === "all" || recipe.tags.includes(filters.category);
+    const matchesDiet =
+      filters.diet === "all" ||
+      recipe.diet === filters.diet ||
+      (filters.diet === "vegetar" && recipe.diet === "vegansk");
+    const matchesAllergen =
+      !filters.excludedAllergen ||
+      !(recipe.allergens ?? []).includes(filters.excludedAllergen);
 
     return (
       matchesSearch &&
       matchesCalories &&
       matchesProtein &&
       matchesTime &&
-      matchesCategory
+      matchesCategory &&
+      matchesDiet &&
+      matchesAllergen
     );
   });
 
   const sorters = {
     newest: (firstRecipe, secondRecipe) =>
+      Number(Boolean(secondRecipe.isFeatured)) - Number(Boolean(firstRecipe.isFeatured)) ||
       new Date(secondRecipe.createdAt) - new Date(firstRecipe.createdAt),
     alphabetical: (firstRecipe, secondRecipe) =>
       firstRecipe.title.localeCompare(secondRecipe.title, "nb"),
@@ -212,6 +241,30 @@ export function formatTag(tag) {
   };
 
   return tagNames[tag] || tag;
+}
+
+export function formatDiet(diet) {
+  return {
+    alle: "Ingen spesifikk diett",
+    vegetar: "Vegetar",
+    vegansk: "Vegansk",
+  }[diet] || diet;
+}
+
+export function formatAllergen(allergen) {
+  return {
+    gluten: "Gluten",
+    melk: "Melk",
+    egg: "Egg",
+    notter: "Nøtter",
+    peanotter: "Peanøtter",
+    soya: "Soya",
+    fisk: "Fisk",
+    skalldyr: "Skalldyr",
+    sesam: "Sesam",
+    selleri: "Selleri",
+    sennep: "Sennep",
+  }[allergen] || allergen;
 }
 
 export function formatAmount(amount) {

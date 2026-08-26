@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <title>Min konto | MatPreppern</title>
+    <meta name="description" content="Logg inn og administrer oppskrifter, favoritter og måltidsplan i MatPreppern." />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Hopp til hovedinnhold</a>
+    <header class="site-header">
+      <nav class="navbar" aria-label="Hovedmeny">
+        <a href="index.html" class="logo" aria-label="MatPreppern, forsiden">MatPreppern</a>
+        <div class="nav-links">
+          <a href="index.html#recipes">Oppskrifter</a>
+          <a href="planner.html">Planlegger</a>
+          <a href="community-notes.html">Community Notes</a>
+          <a href="account.html" aria-current="page" data-auth-label>Logg inn</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="account-hero" aria-labelledby="accountTitle">
+        <p class="eyebrow">Din MatPreppern</p>
+        <h1 id="accountTitle">Konto og oppskrifter</h1>
+        <p class="hero-text">Logg inn for å lagre, redigere og synkronisere innholdet ditt.</p>
+      </section>
+
+      <p id="accountStatus" class="data-status" role="status" aria-live="polite" tabindex="-1"></p>
+
+      <section id="guestAccount" class="account-grid" aria-label="Registrering og innlogging">
+        <form id="signInForm" class="account-card">
+          <h2>Logg inn</h2>
+          <label>E-post<input id="signInEmail" type="email" autocomplete="email" required /></label>
+          <label>Passord<input id="signInPassword" type="password" autocomplete="current-password" required /></label>
+          <button class="primary-button" type="submit">Logg inn</button>
+        </form>
+
+        <form id="signUpForm" class="account-card">
+          <h2>Opprett konto</h2>
+          <label>E-post<input id="signUpEmail" type="email" autocomplete="email" required /></label>
+          <label>
+            Passord
+            <span class="field-help" id="passwordHelp">Bruk minst 10 tegn og et unikt passord.</span>
+            <input id="signUpPassword" type="password" autocomplete="new-password" minlength="10" required aria-describedby="passwordHelp" />
+          </label>
+          <button class="primary-button" type="submit">Opprett konto</button>
+          <p class="field-help">Passordet behandles av Supabase Auth og lagres aldri i oppskriftstabellene.</p>
+        </form>
+
+        <form id="resetRequestForm" class="account-card account-card--wide">
+          <h2>Glemt passord?</h2>
+          <label>E-post<input id="resetEmail" type="email" autocomplete="email" required /></label>
+          <button class="secondary-button" type="submit">Send tilbakestillingslenke</button>
+        </form>
+      </section>
+
+      <section id="passwordRecovery" class="account-card hidden" aria-labelledby="recoveryTitle">
+        <h2 id="recoveryTitle">Velg nytt passord</h2>
+        <form id="passwordRecoveryForm">
+          <label>Nytt passord<input id="newPassword" type="password" autocomplete="new-password" minlength="10" required /></label>
+          <label>Gjenta nytt passord<input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="10" required /></label>
+          <button class="primary-button" type="submit">Oppdater passord</button>
+        </form>
+      </section>
+
+      <div id="signedInAccount" class="hidden">
+        <section class="account-card account-summary" aria-labelledby="signedInTitle">
+          <div>
+            <p class="eyebrow">Innlogget</p>
+            <h2 id="signedInTitle">Min konto</h2>
+            <p id="accountEmail"></p>
+            <p id="adminRoleBadge" class="admin-role-badge hidden">MatPreppern-admin</p>
+          </div>
+          <button id="signOutButton" class="secondary-button" type="button">Logg ut</button>
+        </section>
+
+        <section class="account-list-section" aria-labelledby="myRecipesTitle">
+          <div class="section-heading">
+            <div><p class="eyebrow">Ditt innhold</p><h2 id="myRecipesTitle">Mine oppskrifter</h2></div>
+            <a class="primary-button" href="index.html#add-recipe">Ny oppskrift</a>
+          </div>
+          <div id="myRecipeList" class="account-item-list" aria-busy="true"></div>
+        </section>
+
+        <section class="account-list-section" aria-labelledby="favoritesTitle">
+          <div class="section-heading"><div><p class="eyebrow">Lagret</p><h2 id="favoritesTitle">Mine favoritter</h2></div></div>
+          <div id="favoriteList" class="account-item-list" aria-busy="true"></div>
+        </section>
+
+        <section id="adminPanel" class="account-list-section hidden" aria-labelledby="adminTitle">
+          <div class="section-heading">
+            <div><p class="eyebrow">MatPreppern-admin</p><h2 id="adminTitle">Administrasjon</h2></div>
+            <a class="primary-button" href="community-notes.html#note-editor">Skriv Community Note</a>
+          </div>
+
+          <section class="admin-section" aria-labelledby="featuredRecipesTitle">
+            <h3 id="featuredRecipesTitle">Fremhev oppskrifter</h3>
+            <p class="field-help">Fremhevede oppskrifter får et tydelig merke og vises først ved standardsortering.</p>
+            <label class="search-field admin-recipe-search" for="adminRecipeSearch">
+              Finn oppskrift
+              <input id="adminRecipeSearch" type="search" autocomplete="off" placeholder="Søk på tittel" />
+            </label>
+            <p id="adminRecipeCount" class="field-help" aria-live="polite"></p>
+            <div id="adminFeaturedList" class="account-item-list" aria-busy="true"></div>
+          </section>
+
+          <section class="admin-section" aria-labelledby="reportsTitle">
+            <h3 id="reportsTitle">Rapporter og moderering</h3>
+            <p class="field-help">Skjulte oppskrifter er fortsatt synlige for eieren og administratorer.</p>
+            <div id="adminReportList" class="account-item-list" aria-busy="true"></div>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="js/auth-nav.js"></script>
+    <script type="module" src="js/account.js"></script>
+  </body>
+</html>
