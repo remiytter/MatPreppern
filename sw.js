@@ -1,4 +1,4 @@
-const CACHE_NAME = "matpreppern-v12";
+const CACHE_NAME = "matpreppern-v13";
 const SUPABASE_LIBRARY_URL =
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/+esm";
 
@@ -11,6 +11,9 @@ const APP_SHELL = [
   "./community-notes.html",
   "./reports.html",
   "./recipe.html",
+  "./profile.html",
+  "./legal.html",
+  "./offline.html",
   "./css/style.css",
   "./js/index.js",
   "./js/planner.js",
@@ -21,6 +24,8 @@ const APP_SHELL = [
   "./js/auth-nav.js",
   "./js/recipe-page.js",
   "./js/recipe-utils.js",
+  "./js/profile.js",
+  "./js/pwa.js",
   "./js/supabase.js",
   "./js/supabase-config.js",
   "./manifest.json",
@@ -32,7 +37,10 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -64,13 +72,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+          return response;
+        })
+        .catch(async () => (await caches.match(event.request)) || caches.match("./offline.html"))
+    );
+    return;
+  }
 
-      return fetch(event.request);
-    })
-  );
+  event.respondWith(caches.match(event.request).then((cachedResponse) => {
+    const networkResponse = fetch(event.request).then((response) => {
+      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+      return response;
+    }).catch(() => cachedResponse || Response.error());
+    return cachedResponse || networkResponse;
+  }));
 });

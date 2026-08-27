@@ -1,5 +1,9 @@
 import {
-  deleteRecipe,
+  archiveRecipe,
+  deleteMyAccount,
+  enrollMfa,
+  ensureMyProfile,
+  exportMyData,
   fetchAdminReports,
   fetchAdminRecipes,
   fetchFavoriteIds,
@@ -8,6 +12,7 @@ import {
   fetchMyReports,
   fetchRecipes,
   getCurrentUser,
+  getMfaState,
   isCurrentUserAdmin,
   onAuthStateChange,
   sendPasswordReset,
@@ -17,7 +22,10 @@ import {
   signIn,
   signOut,
   signUp,
+  restoreRecipe,
   updatePassword,
+  updateMyProfile,
+  verifyMfa,
 } from "./supabase.js";
 import { escapeHtml } from "./recipe-utils.js";
 
@@ -36,6 +44,11 @@ const adminRoleBadge = document.querySelector("#adminRoleBadge");
 const adminReportFilter = document.querySelector("#adminReportFilter");
 const adminReportCount = document.querySelector("#adminReportCount");
 const adminReportNotice = document.querySelector("#adminReportNotice");
+const adminMfaPanel = document.querySelector("#adminMfaPanel");
+const startMfaEnrollment = document.querySelector("#startMfaEnrollment");
+const mfaEnrollment = document.querySelector("#mfaEnrollment");
+const mfaChallengeForm = document.querySelector("#mfaChallengeForm");
+const mfaStatus = document.querySelector("#mfaStatus");
 const reportUpdateNotice = document.querySelector("#reportUpdateNotice");
 const reportUpdateCount = document.querySelector("#reportUpdateCount");
 let renderRequest = 0;
@@ -43,6 +56,7 @@ let adminRecipes = [];
 let adminModerationByRecipe = new Map();
 let adminReports = [];
 let passwordRecoveryMode = false;
+let pendingMfaFactorId = null;
 
 const reportStatusLabels = {
   open: "Åpen",
@@ -81,10 +95,13 @@ function renderRecipeItems(element, recipes, own = false) {
   element.innerHTML = recipes.map((recipe) => `
     <article class="account-list-item">
       <div>
+        ${recipe.archivedAt ? '<p class="eyebrow">Arkivert</p>' : ""}
         <h3><a href="recipe.html?id=${recipe.id}">${escapeHtml(recipe.title)}</a></h3>
         <p>${recipe.time} min · ${recipe.portions} ${recipe.portions === 1 ? "porsjon" : "porsjoner"}</p>
       </div>
-      ${own ? `<div class="item-actions"><a class="secondary-button" href="add-recipe.html?edit=${recipe.id}">Rediger</a><button class="danger-button" type="button" data-delete-recipe="${recipe.id}">Slett</button></div>` : ""}
+      ${own ? `<div class="item-actions"><a class="secondary-button" href="add-recipe.html?edit=${recipe.id}">Rediger</a>${recipe.archivedAt
+        ? `<button class="secondary-button" type="button" data-restore-recipe="${recipe.id}">Gjenopprett</button>`
+        : `<button class="danger-button" type="button" data-archive-recipe="${recipe.id}">Arkiver</button>`}</div>` : ""}
     </article>
   `).join("");
 }
@@ -112,9 +129,25 @@ function renderReportUpdateNotice(reports) {
 
 async function loadAdminPanel() {
   const isAdmin = await isCurrentUserAdmin();
-  adminPanel.classList.toggle("hidden", !isAdmin);
   adminRoleBadge.classList.toggle("hidden", !isAdmin);
+  adminMfaPanel.classList.add("hidden");
+  adminPanel.classList.add("hidden");
   if (!isAdmin) return;
+
+  const mfa = await getMfaState();
+  if (mfa.currentLevel !== "aal2") {
+    adminMfaPanel.classList.remove("hidden");
+    pendingMfaFactorId = mfa.verifiedFactor?.id ?? null;
+    startMfaEnrollment.classList.toggle("hidden", Boolean(mfa.verifiedFactor));
+    mfaEnrollment.classList.add("hidden");
+    mfaChallengeForm.classList.toggle("hidden", !mfa.verifiedFactor);
+    document.querySelector("#adminMfaDescription").textContent = mfa.verifiedFactor
+      ? "Skriv inn en ny kode fra autentiseringsappen for å åpne adminpanelet."
+      : "Adminhandlinger er låst frem til du har satt opp og bekreftet en autentiseringsapp.";
+    return;
+  }
+
+  adminPanel.classList.remove("hidden");
 
   const [reports, moderation, allRecipes] = await Promise.all([
     fetchAdminReports(),
@@ -204,13 +237,16 @@ function renderAdminRecipes() {
 
   adminFeaturedList.innerHTML = visibleRecipes.map((recipe) => {
     const isHidden = adminModerationByRecipe.get(recipe.id) === "hidden";
-    const canFeature = !isHidden || recipe.isFeatured;
-    const statusText = isHidden
+    const isArchived = Boolean(recipe.archivedAt);
+    const canFeature = recipe.isFeatured || (!isHidden && !isArchived);
+    const statusText = isArchived
+      ? "Arkivert av forfatter"
+      : isHidden
       ? "Skjult av moderering"
       : recipe.isFeatured ? "Fremhevet" : "Ikke fremhevet";
     const buttonText = recipe.isFeatured
       ? "Fjern fremheving"
-      : isHidden ? "Kan ikke fremheves" : "Fremhev";
+      : isHidden || isArchived ? "Kan ikke fremheves" : "Fremhev";
 
     return `
       <article class="account-list-item">
@@ -239,6 +275,7 @@ async function renderAuthState(user) {
   if (!user || passwordRecoveryMode) {
     adminRoleBadge.classList.add("hidden");
     adminPanel.classList.add("hidden");
+    adminMfaPanel.classList.add("hidden");
     return;
   }
 
@@ -247,19 +284,22 @@ async function renderAuthState(user) {
   favoriteList.setAttribute("aria-busy", "true");
 
   try {
-    const [myRecipes, favoriteIds, allResult, myReports] = await Promise.all([
+    const [profile, myRecipes, favoriteIds, allResult, myReports] = await Promise.all([
+      ensureMyProfile(),
       fetchMyRecipes(),
       fetchFavoriteIds(),
       fetchRecipes(),
       fetchMyReports(),
     ]);
     if (request !== renderRequest) return;
+    document.querySelector("#profileDisplayName").value = profile?.displayName ?? "";
+    document.querySelector("#profileBio").value = profile?.bio ?? "";
+    document.querySelector("#viewPublicProfile").href = `profile.html?id=${encodeURIComponent(user.id)}`;
     const favoriteSet = new Set(favoriteIds);
     renderRecipeItems(myRecipeList, myRecipes, true);
     renderRecipeItems(favoriteList, allResult.recipes.filter((recipe) => favoriteSet.has(recipe.id)));
     renderReportUpdateNotice(myReports);
     await loadAdminPanel();
-    setStatus("");
   } catch (error) {
     console.error("Kunne ikke laste kontoen:", error);
     setStatus(error.message || "Kunne ikke laste kontoen.", "error");
@@ -354,17 +394,118 @@ document.querySelector("#signOutButton").addEventListener("click", async () => {
 });
 
 myRecipeList.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-delete-recipe]");
+  const button = event.target.closest("[data-archive-recipe], [data-restore-recipe]");
   if (!button) return;
-  if (!window.confirm("Vil du slette oppskriften permanent?")) return;
+  const shouldRestore = Boolean(button.dataset.restoreRecipe);
+  if (!shouldRestore && !window.confirm("Vil du arkivere oppskriften? Den skjules fra siden, men kan gjenopprettes her senere.")) return;
   button.disabled = true;
   try {
-    await deleteRecipe(Number(button.dataset.deleteRecipe));
-    setStatus("Oppskriften ble slettet.");
+    if (shouldRestore) {
+      await restoreRecipe(Number(button.dataset.restoreRecipe));
+      setStatus("Oppskriften ble gjenopprettet.");
+    } else {
+      await archiveRecipe(Number(button.dataset.archiveRecipe));
+      setStatus("Oppskriften ble arkivert.");
+    }
     await renderAuthState(await getCurrentUser());
   } catch (error) {
-    setStatus(error.message || "Kunne ikke slette oppskriften.", "error");
+    setStatus(error.message || "Kunne ikke oppdatere oppskriften.", "error");
     button.disabled = false;
+  }
+});
+
+document.querySelector("#profileForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await handleAuthForm(event.currentTarget, () => updateMyProfile(
+      document.querySelector("#profileDisplayName").value,
+      document.querySelector("#profileBio").value
+    ), "Lagrer …");
+    setStatus("Profilen ble lagret.");
+  } catch (error) {
+    setStatus(error.message || "Kunne ikke lagre profilen.", "error");
+  }
+});
+
+startMfaEnrollment.addEventListener("click", async () => {
+  startMfaEnrollment.disabled = true;
+  mfaStatus.textContent = "";
+  try {
+    const enrollment = await enrollMfa();
+    pendingMfaFactorId = enrollment.id;
+    document.querySelector("#mfaQrCode").src = enrollment.totp.qr_code;
+    document.querySelector("#mfaSecret").textContent = enrollment.totp.secret;
+    mfaEnrollment.classList.remove("hidden");
+    startMfaEnrollment.classList.add("hidden");
+    document.querySelector("#mfaEnrollmentCode").focus();
+  } catch (error) {
+    mfaStatus.textContent = error.message || "Kunne ikke starte tofaktoroppsettet.";
+    startMfaEnrollment.disabled = false;
+  }
+});
+
+document.querySelector("#mfaEnrollmentForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!pendingMfaFactorId) return;
+  try {
+    await handleAuthForm(event.currentTarget, () => verifyMfa(
+      pendingMfaFactorId,
+      document.querySelector("#mfaEnrollmentCode").value
+    ), "Bekrefter …");
+    setStatus("Tofaktor er aktivert. Adminpanelet er åpnet.");
+    await renderAuthState(await getCurrentUser());
+  } catch (error) {
+    mfaStatus.textContent = error.message || "Koden kunne ikke bekreftes.";
+  }
+});
+
+mfaChallengeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!pendingMfaFactorId) return;
+  try {
+    await handleAuthForm(event.currentTarget, () => verifyMfa(
+      pendingMfaFactorId,
+      document.querySelector("#mfaChallengeCode").value
+    ), "Bekrefter …");
+    setStatus("Identiteten er bekreftet. Adminpanelet er åpnet.");
+    await renderAuthState(await getCurrentUser());
+  } catch (error) {
+    mfaStatus.textContent = error.message || "Koden kunne ikke bekreftes.";
+  }
+});
+
+document.querySelector("#exportDataButton").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const exported = await exportMyData();
+    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `matpreppern-data-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+    setStatus("Dataene dine ble lastet ned.");
+  } catch (error) {
+    setStatus(error.message || "Kunne ikke laste ned dataene.", "error");
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.querySelector("#deleteAccountForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (document.querySelector("#deleteAccountConfirmation").value !== "SLETT") {
+    setStatus("Skriv SLETT med store bokstaver for å bekrefte.", "error");
+    return;
+  }
+  if (!window.confirm("Slette kontoen og alt innhold permanent? Dette kan ikke angres.")) return;
+  try {
+    await handleAuthForm(event.currentTarget, deleteMyAccount, "Sletter …");
+    window.location.assign("index.html?accountDeleted=1");
+  } catch (error) {
+    setStatus(error.message || "Kontoen kunne ikke slettes.", "error");
   }
 });
 

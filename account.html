@@ -53,6 +53,7 @@
           </label>
           <button class="primary-button" type="submit">Opprett konto</button>
           <p class="field-help">Passordet behandles av Supabase Auth og lagres aldri i oppskriftstabellene.</p>
+          <p class="field-help">Når du oppretter konto, godtar du <a class="inline-link" href="legal.html#terms">bruksvilkårene</a> og har lest <a class="inline-link" href="legal.html#privacy">personvernerklæringen</a>.</p>
         </form>
 
         <form id="resetRequestForm" class="account-card account-card--wide">
@@ -93,6 +94,45 @@
           </div>
         </section>
 
+        <section class="account-card" aria-labelledby="profileEditorTitle">
+          <div>
+            <p class="eyebrow">Offentlig profil</p>
+            <h2 id="profileEditorTitle">Profil og forfatternavn</h2>
+            <p class="field-help">E-postadressen din vises aldri offentlig. Visningsnavnet vises på oppskriftene dine.</p>
+          </div>
+          <form id="profileForm" class="stack-form">
+            <label for="profileDisplayName">Visningsnavn<input id="profileDisplayName" type="text" minlength="2" maxlength="60" autocomplete="nickname" required /></label>
+            <label for="profileBio">Kort profiltekst<textarea id="profileBio" maxlength="300" rows="4"></textarea></label>
+            <div class="item-actions">
+              <button class="primary-button" type="submit">Lagre profil</button>
+              <a id="viewPublicProfile" class="secondary-button" href="profile.html">Se offentlig profil</a>
+            </div>
+          </form>
+        </section>
+
+        <section id="adminMfaPanel" class="account-card admin-mfa-panel hidden" aria-labelledby="adminMfaTitle">
+          <div>
+            <p class="eyebrow">Påkrevd for administratorer</p>
+            <h2 id="adminMfaTitle">Sikre adminrollen med tofaktor</h2>
+            <p id="adminMfaDescription">Adminhandlinger er låst frem til du har bekreftet en kode fra en autentiseringsapp.</p>
+          </div>
+          <button id="startMfaEnrollment" class="primary-button" type="button">Sett opp autentiseringsapp</button>
+          <div id="mfaEnrollment" class="mfa-enrollment hidden">
+            <p>Skann QR-koden i for eksempel Microsoft Authenticator, Google Authenticator eller 1Password.</p>
+            <img id="mfaQrCode" class="mfa-qr" alt="QR-kode for å legge MatPreppern til i autentiseringsappen" width="220" height="220" />
+            <details><summary>Kan du ikke skanne?</summary><p id="mfaSecret" class="mfa-secret"></p></details>
+            <form id="mfaEnrollmentForm" class="stack-form">
+              <label for="mfaEnrollmentCode">Sekssifret kode<input id="mfaEnrollmentCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required /></label>
+              <button class="primary-button" type="submit">Bekreft og åpne adminpanelet</button>
+            </form>
+          </div>
+          <form id="mfaChallengeForm" class="stack-form hidden">
+            <label for="mfaChallengeCode">Kode fra autentiseringsappen<input id="mfaChallengeCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required /></label>
+            <button class="primary-button" type="submit">Bekreft identiteten min</button>
+          </form>
+          <p id="mfaStatus" class="form-message" role="status" aria-live="polite"></p>
+        </section>
+
         <section class="account-list-section" aria-labelledby="myRecipesTitle">
           <div class="section-heading">
             <div><p class="eyebrow">Ditt innhold</p><h2 id="myRecipesTitle">Mine oppskrifter</h2></div>
@@ -104,6 +144,23 @@
         <section class="account-list-section" aria-labelledby="favoritesTitle">
           <div class="section-heading"><div><p class="eyebrow">Lagret</p><h2 id="favoritesTitle">Mine favoritter</h2></div></div>
           <div id="favoriteList" class="account-item-list" aria-busy="true"></div>
+        </section>
+
+        <section class="account-list-section account-data-section" aria-labelledby="accountDataTitle">
+          <div class="section-heading"><div><p class="eyebrow">Personvern</p><h2 id="accountDataTitle">Dine data</h2></div></div>
+          <div class="account-grid">
+            <div class="account-card">
+              <h3>Last ned data</h3>
+              <p>Last ned profil, oppskrifter, favoritter, plan og rapporter som en JSON-fil.</p>
+              <button id="exportDataButton" class="secondary-button" type="button">Last ned mine data</button>
+            </div>
+            <form id="deleteAccountForm" class="account-card danger-zone">
+              <h3>Slett konto permanent</h3>
+              <p>Dette sletter innlogging, profil, oppskrifter, bilder, favoritter og lagret måltidsplan. Handlingen kan ikke angres.</p>
+              <label for="deleteAccountConfirmation">Skriv SLETT for å bekrefte<input id="deleteAccountConfirmation" type="text" autocomplete="off" pattern="SLETT" required /></label>
+              <button class="danger-button" type="submit">Slett kontoen min</button>
+            </form>
+          </div>
         </section>
 
         <section id="adminPanel" class="account-list-section hidden" aria-labelledby="adminTitle">
@@ -146,7 +203,10 @@
       </div>
     </main>
 
+    <footer class="site-footer"><div><p><strong>MatPreppern</strong></p><nav aria-label="Juridisk informasjon"><a href="legal.html#privacy">Personvern</a><a href="legal.html#terms">Vilkår</a><a href="legal.html#contact">Kontakt</a></nav></div></footer>
+
     <script type="module" src="js/auth-nav.js"></script>
+    <script type="module" src="js/pwa.js"></script>
     <script type="module" src="js/account.js"></script>
   </body>
 </html>

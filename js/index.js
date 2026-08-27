@@ -1,12 +1,11 @@
 import {
-  fetchRecipes,
   getCurrentUser,
   getRecipeImageUrl,
+  searchRecipes,
 } from "./supabase.js";
 import {
   DEFAULT_FILTERS,
   escapeHtml,
-  filterAndSortRecipes,
   formatAmount,
   formatDiet,
   formatTag,
@@ -15,6 +14,11 @@ import {
 let recipes = [];
 let currentUser = null;
 let activeCategory = DEFAULT_FILTERS.category;
+let totalRecipes = 0;
+let currentPage = 0;
+let loadRequest = 0;
+let searchTimer = null;
+const PAGE_SIZE = 12;
 
 const recipeFilters = document.querySelector("#recipeFilters");
 const recipeGrid = document.querySelector("#recipeGrid");
@@ -30,6 +34,7 @@ const sortSelect = document.querySelector("#sortSelect");
 const dietSelect = document.querySelector("#dietSelect");
 const allergenSelect = document.querySelector("#allergenSelect");
 const categoryButtons = document.querySelectorAll(".category-button");
+const loadMoreButton = document.querySelector("#loadMoreRecipes");
 
 function recipeCountText(count) {
   return count === 1 ? "1 oppskrift" : `${count} oppskrifter`;
@@ -51,16 +56,30 @@ function getCurrentFilters() {
   };
 }
 
+function hasActiveFilters() {
+  const filters = getCurrentFilters();
+  return Boolean(
+    filters.search.trim()
+    || Number.isFinite(filters.maxCalories)
+    || filters.minProtein > 0
+    || filters.maxTime > 0
+    || filters.category !== DEFAULT_FILTERS.category
+    || filters.diet !== DEFAULT_FILTERS.diet
+    || filters.excludedAllergen
+  );
+}
+
 function renderRecipes(recipeList) {
   recipeGrid.replaceChildren();
   recipeGrid.setAttribute("aria-busy", "false");
-  recipeCount.textContent = recipeCountText(recipeList.length);
-  filterSummary.textContent = `Viser ${recipeCountText(recipeList.length)} av ${recipes.length}.`;
+  recipeCount.textContent = recipeCountText(totalRecipes);
+  filterSummary.textContent = `Viser ${recipeList.length} av ${recipeCountText(totalRecipes)}.`;
+  loadMoreButton.classList.toggle("hidden", recipeList.length >= totalRecipes || totalRecipes === 0);
 
   if (recipeList.length === 0) {
     const emptyState = document.createElement("div");
     emptyState.className = "coming-soon-card empty-recipe-state";
-    emptyState.innerHTML = recipes.length === 0
+    emptyState.innerHTML = totalRecipes === 0 && !hasActiveFilters()
       ? `<h3>Ingen oppskrifter ennå</h3><p>${currentUser ? "Legg til den første oppskriften." : "Logg inn for å legge til den første oppskriften."}</p><a class="secondary-button" href="${currentUser ? "add-recipe.html" : "account.html?next=add-recipe.html"}">${currentUser ? "Legg til oppskrift" : "Logg inn"}</a>`
       : '<h3>Ingen treff</h3><p>Prøv et annet søkeord eller nullstill ett eller flere filtre.</p><button class="secondary-button" id="emptyResetFilters" type="button">Nullstill filtre</button>';
     recipeGrid.appendChild(emptyState);
@@ -81,6 +100,7 @@ function renderRecipes(recipeList) {
       <div class="recipe-card-content">
         ${recipe.isFeatured ? '<p class="featured-badge"><span aria-hidden="true">★</span> Fremhevet av MatPreppern</p>' : ""}
         <h3 id="${headingId}">${escapeHtml(recipe.title)}</h3>
+        <p class="recipe-author">Av <a href="profile.html?id=${encodeURIComponent(recipe.userId)}">${escapeHtml(recipe.authorName)}</a></p>
         <p class="recipe-meta">${recipe.time} min · ${recipe.portions} ${recipe.portions === 1 ? "porsjon" : "porsjoner"}</p>
         <div class="macro-row" aria-label="Næringsinnhold per porsjon">
           <div class="macro-box"><strong>${formatAmount(recipe.calories)}</strong><span>kcal</span></div>
@@ -96,8 +116,51 @@ function renderRecipes(recipeList) {
   });
 }
 
-function applyFilters() {
-  renderRecipes(filterAndSortRecipes(recipes, getCurrentFilters()));
+async function loadRecipes({ reset = true } = {}) {
+  const request = ++loadRequest;
+  if (reset) {
+    currentPage = 0;
+    recipes = [];
+    recipeGrid.setAttribute("aria-busy", "true");
+  }
+  recipeStatus.textContent = "Henter oppskrifter …";
+  loadMoreButton.disabled = true;
+
+  try {
+    const result = await searchRecipes(getCurrentFilters(), {
+      page: currentPage,
+      pageSize: PAGE_SIZE,
+    });
+    if (request !== loadRequest) return;
+    recipes = reset ? result.recipes : [...recipes, ...result.recipes];
+    totalRecipes = result.total;
+    recipeStatus.textContent = result.source === "cache"
+      ? "Du er offline. Viser sist lagrede treff."
+      : "";
+    recipeStatus.classList.remove("data-status--error");
+    recipeStatus.classList.toggle("data-status--warning", result.source === "cache");
+    renderRecipes(recipes);
+    return true;
+  } catch (error) {
+    if (request !== loadRequest) return;
+    console.error("Kunne ikke hente oppskrifter:", error);
+    recipeGrid.setAttribute("aria-busy", "false");
+    recipeStatus.textContent = error.message || "Kunne ikke hente oppskrifter.";
+    recipeStatus.classList.add("data-status--error");
+    filterSummary.textContent = "Ingen oppskrifter kunne lastes.";
+    if (reset) {
+      totalRecipes = 0;
+      renderRecipes([]);
+    }
+    return false;
+  } finally {
+    if (request === loadRequest) loadMoreButton.disabled = false;
+  }
+}
+
+function scheduleRecipeSearch() {
+  window.clearTimeout(searchTimer);
+  searchTimer = window.setTimeout(() => loadRecipes({ reset: true }), 300);
 }
 
 function setActiveCategory(category) {
@@ -125,25 +188,29 @@ function resetFilters(shouldFocusSearch = false) {
   sortSelect.value = DEFAULT_FILTERS.sort;
   setActiveCategory(DEFAULT_FILTERS.category);
   updateCalorieOutput();
-  applyFilters();
+  loadRecipes({ reset: true });
   if (shouldFocusSearch) searchInput.focus();
 }
 
 function updateAuthUI(user) {
   currentUser = user;
-  applyFilters();
 }
 
 recipeFilters.addEventListener("submit", (event) => event.preventDefault());
-searchInput.addEventListener("input", applyFilters);
-calorieSlider.addEventListener("input", () => { updateCalorieOutput(); applyFilters(); });
+searchInput.addEventListener("input", scheduleRecipeSearch);
+calorieSlider.addEventListener("input", () => { updateCalorieOutput(); scheduleRecipeSearch(); });
 [proteinSelect, timeSelect, sortSelect, dietSelect, allergenSelect]
-  .forEach((field) => field.addEventListener("change", applyFilters));
+  .forEach((field) => field.addEventListener("change", () => loadRecipes({ reset: true })));
 document.querySelector("#resetFilters").addEventListener("click", () => resetFilters(true));
 categoryButtons.forEach((button) => button.addEventListener("click", () => {
   setActiveCategory(button.dataset.category);
-  applyFilters();
+  loadRecipes({ reset: true });
 }));
+loadMoreButton.addEventListener("click", async () => {
+  currentPage += 1;
+  const loaded = await loadRecipes({ reset: false });
+  if (!loaded) currentPage = Math.max(0, currentPage - 1);
+});
 
 const installAppButton = document.querySelector("#installAppButton");
 const installModal = document.querySelector("#installModal");
@@ -206,15 +273,9 @@ window.addEventListener("appinstalled", () => {
 
 async function initializeRecipes() {
   try {
-    const [result, user] = await Promise.all([fetchRecipes(), getCurrentUser()]);
-    recipes = result.recipes;
+    const user = await getCurrentUser();
     updateAuthUI(user);
-    recipeStatus.textContent = result.source === "cache"
-      ? "Databasen er ikke tilgjengelig. Du ser sist lagrede oppskrifter."
-      : "";
-    recipeStatus.classList.toggle("data-status--warning", result.source === "cache");
-    applyFilters();
-
+    await loadRecipes({ reset: true });
   } catch (error) {
     console.error("Kunne ikke hente oppskrifter:", error);
     recipeGrid.setAttribute("aria-busy", "false");
@@ -226,12 +287,5 @@ async function initializeRecipes() {
 }
 
 document.addEventListener("matpreppern-auth-changed", (event) => updateAuthUI(event.detail.user));
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    try { await navigator.serviceWorker.register("./sw.js"); }
-    catch (error) { console.error("Service Worker kunne ikke registreres:", error); }
-  });
-}
 
 initializeRecipes();

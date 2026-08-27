@@ -8,20 +8,23 @@ som database, autentisering og bildelagring.
 
 - Registrering, e-postbekreftelse, innlogging, utlogging og glemt passord
 - Offentlige oppskrifter med egne, delbare URL-er
-- Opprette og redigere egne oppskrifter på en egen, ryddig side, samt slette dem fra Min side
+- Opprette og redigere egne oppskrifter på en egen side, samt arkivere og gjenopprette dem fra Min side
 - Valgfritt oppskriftsbilde i Supabase Storage
+- Offentlige brukerprofiler med forfatternavn på oppskriftene, uten offentlig e-post
 - Favoritter som følger den innloggede brukeren
 - Måltidsplan som lagres lokalt og synkroniseres med kontoen
 - Rapportering med «Mine rapporter», status, adminsvar og varsler i appen
-- Administratorpanel med nye rapporter, behandling og arkiv uten tap av historikk
+- Administratorpanel med nye rapporter, behandling og arkiv uten tap av historikk, beskyttet med TOTP-tofaktor
 - Egen, tildelbar MatPreppern-adminrolle med databasehåndhevede rettigheter
 - Adminstyrt fremheving av oppskrifter
 - Egen Community Notes-side med publisering og kladder for administratorer
-- Søk i navn, beskrivelse, ingredienser, allergener og kategorier
+- Serverbasert, paginert søk i navn, beskrivelse, ingredienser, allergener og kategorier
 - Filtrering på kalorier, protein, tid, kategori, kosthold og allergener
 - Tastaturnavigasjon, statusmeldinger, synlig fokus, redusert bevegelse og
   semantiske skjemaer/dialoger, samt en tilgjengelig mobilmeny
-- Lokal lesecache for offentlige oppskrifter ved nettverksfeil
+- Dataeksport og sikker, permanent kontosletting fra Min side
+- Personvernerklæring, bruksvilkår og kontaktinformasjon
+- Lokal lesecache, egen offline-side og kontrollert oppdateringsvarsel for PWA-en
 
 ## Starte prosjektet
 
@@ -46,6 +49,14 @@ tilgangen begrenses av Postgres-rettigheter og Row Level Security.
 - `supabase/migration-v3-admin-content.sql` legger til fremheving og Community Notes.
 - `supabase/migration-v4-report-workflow.sql` legger til rapportstatus, adminsvar,
   varsler og arkivering.
+- `supabase/migration-v5-launch-hardening.sql` legger til offentlige profiler,
+  oppskriftsarkiv, paginert databasesøk og MFA-krav for administratorhandlinger.
+- `supabase/migration-v6-mfa-rls-performance.sql` gjør MFA-sjekken effektiv ved
+  større datamengder.
+- `supabase/migration-v7-account-deletion-integrity.sql` anonymiserer admin-ID-er
+  ved kontosletting uten å miste modereringshistorikk.
+- `supabase/functions/delete-account` sletter brukerens bilder og Auth-konto på
+  serversiden. Service role-nøkkelen leses bare fra Supabase sitt miljø.
 - Storage-bucketen `recipe-images` er offentlig for visning, men opplasting og
   sletting krever innlogging og riktig eier.
 
@@ -59,7 +70,7 @@ I Supabase Dashboard, åpne **Authentication → URL Configuration**:
 3. Konfigurer egen SMTP-leverandør før eksterne brukere inviteres. Supabase sin
    innebygde e-posttjeneste er bare beregnet på utprøving og kan være begrenset
    til prosjektteamets adresser.
-4. Vurder CAPTCHA og strengere Auth-rate limits før offentlig lansering.
+4. Vurder CAPTCHA og strengere Auth-rate limits dersom tjenesten utsettes for misbruk.
 5. Aktiver **Leaked Password Protection** før offentlig lansering, slik at kjente
    kompromitterte passord kan avvises.
 
@@ -89,7 +100,9 @@ where user_id = (
 ```
 
 MatPreppern-adminer kan behandle rapporter, skjule oppskrifter, fremheve
-oppskrifter og opprette, redigere, publisere eller slette Community Notes.
+oppskrifter og opprette, redigere, publisere eller slette Community Notes. Første
+gang en admin åpner Min side, må vedkommende sette opp en autentiseringsapp.
+Databasen avviser adminhandlinger fra økter som ikke er bekreftet på AAL2-nivå.
 
 ## Sikkerhetsmodell
 
@@ -102,6 +115,8 @@ oppskrifter og opprette, redigere, publisere eller slette Community Notes.
   Community Notes. Kladdene er bare synlige for MatPreppern-adminer.
 - Innloggede brukere kan bare endre oppskrifter, favoritter, planer og bilder de
   selv eier. Dette håndheves i databasen med RLS, ikke bare i grensesnittet.
+- Oppskrifter slettes ikke fra Min side; de arkiveres, skjules offentlig og kan
+  gjenopprettes. Permanent sletting skjer først ved sikker kontosletting.
 - Brukeren kan ikke endre `user_id`, `is_published` eller opprettelsestid gjennom
   Data API-et.
 - Bilder er begrenset til JPEG, PNG og WebP, maksimalt 5 MB og en mappe som

@@ -35,8 +35,10 @@ function render() {
       ${imageUrl ? `<img class="recipe-hero-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(recipe.title)}" width="1120" height="630" />` : ""}
       <div class="recipe-detail-header">
         <p class="eyebrow">Meal prep-oppskrift</p>
+        ${recipe.archivedAt ? '<p class="archive-badge">Arkivert – bare synlig for deg</p>' : ""}
         ${recipe.isFeatured ? '<p class="featured-badge"><span aria-hidden="true">★</span> Fremhevet av MatPreppern</p>' : ""}
         <h1>${escapeHtml(recipe.title)}</h1>
+        <p class="recipe-author">Av <a href="profile.html?id=${encodeURIComponent(recipe.userId)}">${escapeHtml(recipe.authorName)}</a></p>
         <p class="recipe-description">${escapeHtml(recipe.description)}</p>
         <p class="recipe-meta">${recipe.time} min · originalt ${recipe.portions} ${recipe.portions === 1 ? "porsjon" : "porsjoner"}</p>
         <div class="tag-list" aria-label="Kategorier">
@@ -45,8 +47,8 @@ function render() {
         </div>
       </div>
       <div class="recipe-page-actions">
-        <button id="favoriteButton" class="secondary-button" type="button" aria-pressed="${favorite}">${favorite ? "★ Fjern favoritt" : "☆ Lagre som favoritt"}</button>
-        <button id="reportButton" class="text-button" type="button">Rapporter oppskrift</button>
+        ${recipe.archivedAt ? "" : `<button id="favoriteButton" class="secondary-button" type="button" aria-pressed="${favorite}">${favorite ? "★ Fjern favoritt" : "☆ Lagre som favoritt"}</button>
+        <button id="reportButton" class="text-button" type="button">Rapporter oppskrift</button>`}
         ${user?.id === recipe.userId ? `<a class="secondary-button" href="add-recipe.html?edit=${recipe.id}">Rediger oppskriften</a>` : ""}
       </div>
       <div class="portion-controls" aria-label="Juster antall porsjoner">
@@ -85,8 +87,8 @@ function render() {
     render();
     document.querySelector("#increasePortions").focus();
   });
-  document.querySelector("#favoriteButton").addEventListener("click", toggleFavorite);
-  document.querySelector("#reportButton").addEventListener("click", openReportDialog);
+  document.querySelector("#favoriteButton")?.addEventListener("click", toggleFavorite);
+  document.querySelector("#reportButton")?.addEventListener("click", openReportDialog);
 }
 
 async function toggleFavorite() {

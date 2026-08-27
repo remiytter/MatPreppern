@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
-    <title>Mine rapporter | MatPreppern</title>
-    <meta name="description" content="Se status og svar fra MatPreppern på rapporter du har sendt inn." />
+    <title>Brukerprofil | MatPreppern</title>
+    <meta name="description" content="Se offentlige oppskrifter fra en MatPreppern-bruker." />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
@@ -21,41 +21,24 @@
           <a href="planner.html">Planlegger</a>
           <a href="community-notes.html">Community Notes</a>
           <a href="add-recipe.html">Legg til oppskrift</a>
-          <a href="account.html" data-auth-label>Min konto</a>
+          <a href="account.html" data-auth-label>Logg inn</a>
         </div>
       </nav>
     </header>
 
     <main id="main-content">
-      <section class="account-hero" aria-labelledby="reportsPageTitle">
-        <p class="eyebrow">Din aktivitet</p>
-        <h1 id="reportsPageTitle">Mine rapporter</h1>
-        <p class="hero-text">Følg behandlingen av rapportene dine og les svar fra MatPreppern-teamet.</p>
+      <p id="profileStatus" class="data-status" role="status" aria-live="polite">Henter profilen …</p>
+      <section id="profileHeader" class="profile-hero hidden" aria-labelledby="profileName">
+        <p class="eyebrow">MatPreppern-profil</p>
+        <h1 id="profileName">Brukerprofil</h1>
+        <p id="profileBio" class="hero-text"></p>
       </section>
-
-      <p id="reportsStatus" class="data-status" role="status" aria-live="polite" tabindex="-1">Henter rapporter …</p>
-
-      <section id="reportsGuest" class="account-card hidden" aria-labelledby="reportsGuestTitle">
-        <h2 id="reportsGuestTitle">Logg inn for å se rapportene dine</h2>
-        <p>Rapporter er private og kan bare leses av deg og MatPreppern-administratorer.</p>
-        <a class="primary-button" href="account.html?next=reports.html">Logg inn eller opprett konto</a>
-      </section>
-
-      <section id="reportsSignedIn" class="account-list-section hidden" aria-labelledby="reportsListTitle">
+      <section id="profileRecipes" class="recipes-section hidden" aria-labelledby="profileRecipesTitle">
         <div class="section-heading">
-          <div><p class="eyebrow">Privat oversikt</p><h2 id="reportsListTitle">Innsendte rapporter</h2></div>
-          <label class="compact-filter" for="reportFilter">
-            Vis
-            <select id="reportFilter">
-              <option value="all">Alle rapporter</option>
-              <option value="open">Åpne</option>
-              <option value="reviewed">Vurdert</option>
-              <option value="closed">Lukket / arkivert</option>
-            </select>
-          </label>
+          <div><p class="eyebrow">Offentlige oppskrifter</p><h2 id="profileRecipesTitle">Oppskrifter</h2></div>
+          <p id="profileRecipeCount" aria-live="polite"></p>
         </div>
-        <p id="reportCount" class="field-help" aria-live="polite"></p>
-        <div id="myReportList" class="account-item-list" aria-busy="true"></div>
+        <div id="profileRecipeGrid" class="recipe-grid" aria-busy="true"></div>
       </section>
     </main>
 
@@ -63,6 +46,6 @@
 
     <script type="module" src="js/auth-nav.js"></script>
     <script type="module" src="js/pwa.js"></script>
-    <script type="module" src="js/reports.js"></script>
+    <script type="module" src="js/profile.js"></script>
   </body>
 </html>

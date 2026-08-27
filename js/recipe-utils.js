@@ -107,7 +107,11 @@ export function mapRecipeFromDatabase(recipe) {
       : [],
     imagePath: typeof recipe.image_path === "string" ? recipe.image_path : null,
     isPublished: recipe.is_published === true,
+    archivedAt: typeof recipe.archived_at === "string" ? recipe.archived_at : null,
     isFeatured: recipe.is_featured === true,
+    authorName: typeof recipe.author_name === "string"
+      ? recipe.author_name
+      : "MatPreppern-bruker",
     createdAt: recipe.created_at,
     updatedAt:
       typeof recipe.updated_at === "string"

@@ -166,3 +166,56 @@ test("har konto, eierskap, bilder, favoritter og synkronisert plan", async () =>
   assert.match(supabaseScript, /storage\.from\(IMAGE_BUCKET\)/);
   assert.match(plannerScript, /saveMealPlanToDatabase/);
 });
+
+test("har lanseringsherding, profiler og gjenopprettelig oppskriftsarkiv", async () => {
+  const [migration, accountHtml, accountScript, profileHtml, profileScript, indexScript, supabaseScript] = await Promise.all([
+    readProjectFile("supabase/migration-v5-launch-hardening.sql"),
+    readProjectFile("account.html"),
+    readProjectFile("js/account.js"),
+    readProjectFile("profile.html"),
+    readProjectFile("js/profile.js"),
+    readProjectFile("js/index.js"),
+    readProjectFile("js/supabase.js"),
+  ]);
+
+  assert.match(migration, /create table if not exists public\.profiles/i);
+  assert.match(migration, /archived_at timestamptz/i);
+  assert.match(migration, /revoke delete on public\.recipes/i);
+  assert.match(migration, /create or replace function public\.search_recipes/i);
+  assert.match(migration, /has_verified_admin_session/i);
+  assert.match(migration, /\(select auth\.jwt\(\)\) ->> 'aal'/i);
+  assert.match(accountHtml, /id="profileForm"/);
+  assert.match(accountHtml, /id="exportDataButton"/);
+  assert.match(accountHtml, /id="adminMfaPanel"/);
+  assert.match(accountScript, /archiveRecipe/);
+  assert.match(accountScript, /restoreRecipe/);
+  assert.doesNotMatch(accountScript, /data-delete-recipe/);
+  assert.match(profileHtml, /id="profileRecipeGrid"/);
+  assert.match(profileScript, /fetchRecipesByAuthor/);
+  assert.match(indexScript, /searchRecipes/);
+  assert.match(supabaseScript, /functions\.invoke\("delete-account"/);
+});
+
+test("har juridiske sider, sikker kontosletting og kontrollert PWA-oppdatering", async () => {
+  const [legalHtml, edgeFunction, serviceWorker, pwaScript, accountHtml] = await Promise.all([
+    readProjectFile("legal.html"),
+    readProjectFile("supabase/functions/delete-account/index.ts"),
+    readProjectFile("sw.js"),
+    readProjectFile("js/pwa.js"),
+    readProjectFile("account.html"),
+  ]);
+
+  assert.match(legalHtml, /id="privacy"/);
+  assert.match(legalHtml, /id="terms"/);
+  assert.match(legalHtml, /remi@oppsvingdigital\.no/);
+  assert.match(edgeFunction, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(edgeFunction, /auth\.getUser\(token\)/);
+  assert.match(edgeFunction, /auth\.admin\.deleteUser/);
+  assert.doesNotMatch(edgeFunction, /eyJ[A-Za-z0-9_-]{20,}/);
+  assert.match(serviceWorker, /offline\.html/);
+  assert.match(serviceWorker, /SKIP_WAITING/);
+  assert.doesNotMatch(serviceWorker, /install[\s\S]{0,180}self\.skipWaiting\(\)/);
+  assert.match(pwaScript, /controllerchange/);
+  assert.match(pwaScript, /Oppdater nå/);
+  assert.match(accountHtml, /legal\.html#privacy/);
+});

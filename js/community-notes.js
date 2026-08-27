@@ -3,6 +3,7 @@ import {
   deleteCommunityNote,
   fetchCommunityNotes,
   getCurrentUser,
+  getMfaState,
   isCurrentUserAdmin,
   onAuthStateChange,
   updateCommunityNote,
@@ -99,7 +100,8 @@ async function loadNotesPage() {
 
   try {
     const user = await getCurrentUser();
-    const isAdmin = user ? await isCurrentUserAdmin() : false;
+    const hasAdminRole = user ? await isCurrentUserAdmin() : false;
+    const isAdmin = hasAdminRole ? (await getMfaState()).currentLevel === "aal2" : false;
     const loadedNotes = await fetchCommunityNotes();
     if (request !== loadRequest) return;
 
@@ -108,7 +110,9 @@ async function loadNotesPage() {
     noteEditor.classList.toggle("hidden", !isAdmin);
     if (!isAdmin) resetEditor();
     renderNotes();
-    setStatus("");
+    setStatus(hasAdminRole && !isAdmin
+      ? "Bekreft tofaktor på Min side for å se kladder og redigere Community Notes."
+      : "");
     if (isAdmin && window.location.hash === "#note-editor") {
       window.requestAnimationFrame(() => noteEditor.scrollIntoView({ block: "start" }));
     }

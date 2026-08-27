@@ -5,7 +5,7 @@ import {
 } from "./supabase-config.js";
 import { mapRecipeFromDatabase } from "./recipe-utils.js";
 
-const RECIPE_CACHE_KEY = "matpreppernRecipeCacheV2";
+const RECIPE_CACHE_KEY = "matpreppernRecipeCacheV3";
 const IMAGE_BUCKET = "recipe-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const IMAGE_TYPES = new Map([
@@ -32,6 +32,7 @@ const RECIPE_COLUMNS = [
   "allergens",
   "image_path",
   "is_published",
+  "archived_at",
   "created_at",
   "updated_at",
 ].join(",");
@@ -87,10 +88,10 @@ function mapRecipeToDatabase(recipe, userId) {
   };
 }
 
-function saveRecipeCache(recipes) {
+function saveRecipeCache(recipes, metadata = {}) {
   localStorage.setItem(
     RECIPE_CACHE_KEY,
-    JSON.stringify({ savedAt: new Date().toISOString(), recipes })
+    JSON.stringify({ savedAt: new Date().toISOString(), recipes, ...metadata })
   );
 }
 
@@ -161,6 +162,17 @@ function mapReport(data, seenAt = null) {
   };
 }
 
+function mapProfile(data) {
+  if (!data) return null;
+  return {
+    userId: data.user_id,
+    displayName: data.display_name,
+    bio: data.bio,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
 export async function getCurrentUser() {
   const client = getSupabaseClient();
   const { data, error } = await client.auth.getUser();
@@ -228,6 +240,84 @@ export async function updatePassword(password) {
   return data;
 }
 
+export async function ensureMyProfile() {
+  const user = await requireUser();
+  const { error } = await getSupabaseClient()
+    .from("profiles")
+    .insert({ user_id: user.id });
+  if (error && error.code !== "23505") throw error;
+  return fetchProfile(user.id);
+}
+
+export async function fetchProfile(userId) {
+  const { data, error } = await getSupabaseClient()
+    .from("profiles")
+    .select("user_id,display_name,bio,created_at,updated_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return mapProfile(data);
+}
+
+export async function updateMyProfile(displayName, bio) {
+  const user = await requireUser();
+  await ensureMyProfile();
+  const cleanName = displayName.trim();
+  const cleanBio = bio.trim();
+  if (cleanName.length < 2 || cleanName.length > 60) {
+    throw new Error("Visningsnavnet må være mellom 2 og 60 tegn.");
+  }
+  if (cleanBio.length > 300) throw new Error("Profilteksten kan være maksimalt 300 tegn.");
+
+  const { data, error } = await getSupabaseClient()
+    .from("profiles")
+    .update({ display_name: cleanName, bio: cleanBio, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .select("user_id,display_name,bio,created_at,updated_at")
+    .single();
+  if (error) throw error;
+  return mapProfile(data);
+}
+
+export async function searchRecipes(filters = {}, options = {}) {
+  const page = Math.max(0, Number(options.page) || 0);
+  const pageSize = Math.min(50, Math.max(1, Number(options.pageSize) || 12));
+  const queryKey = JSON.stringify({ filters, page, pageSize });
+
+  try {
+    const { data, error } = await getSupabaseClient().rpc("search_recipes", {
+      p_search: String(filters.search ?? "").trim(),
+      p_max_calories: Number.isFinite(filters.maxCalories) ? filters.maxCalories : null,
+      p_min_protein: Number(filters.minProtein) || 0,
+      p_max_time: Number(filters.maxTime) || null,
+      p_tag: !filters.category || filters.category === "all" ? null : filters.category,
+      p_diet: !filters.diet || filters.diet === "all" ? null : filters.diet,
+      p_excluded_allergen: filters.excludedAllergen || null,
+      p_sort: filters.sort || "newest",
+      p_limit: pageSize,
+      p_offset: page * pageSize,
+    });
+    if (error) throw error;
+
+    const recipes = (data ?? []).map(mapRecipeFromDatabase).filter(Boolean);
+    const total = data?.length ? Number(data[0].total_count) : 0;
+    saveRecipeCache(recipes, { queryKey, total });
+    return { recipes, total, source: "database", cachedAt: null };
+  } catch (error) {
+    const cachedResult = readRecipeCache();
+    if (cachedResult?.queryKey === queryKey) {
+      return {
+        recipes: cachedResult.recipes,
+        total: Number(cachedResult.total) || cachedResult.recipes.length,
+        source: "cache",
+        cachedAt: cachedResult.savedAt,
+        error,
+      };
+    }
+    throw error;
+  }
+}
+
 export async function fetchRecipes() {
   try {
     const client = getSupabaseClient();
@@ -236,7 +326,7 @@ export async function fetchRecipes() {
       { data: moderation, error: moderationError },
       { data: features, error: featuresError },
     ] = await Promise.all([
-      client.from("recipes").select(RECIPE_COLUMNS).order("created_at", { ascending: false }),
+      client.from("recipes").select(RECIPE_COLUMNS).is("archived_at", null).order("created_at", { ascending: false }),
       client.from("recipe_moderation").select("recipe_id,status").eq("status", "hidden"),
       client.from("recipe_features").select("recipe_id,featured_at").order("featured_at", { ascending: false }),
     ]);
@@ -279,7 +369,18 @@ export async function fetchRecipe(recipeId) {
 
   if (error) throw error;
   if (featureError) throw featureError;
-  return data ? { ...mapRecipeResult(data), isFeatured: Boolean(feature) } : null;
+  if (!data) return null;
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("display_name")
+    .eq("user_id", data.user_id)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  return {
+    ...mapRecipeResult(data),
+    isFeatured: Boolean(feature),
+    authorName: profile?.display_name ?? "MatPreppern-bruker",
+  };
 }
 
 export async function fetchMyRecipes() {
@@ -299,6 +400,23 @@ export async function fetchAdminRecipes() {
   const [{ data, error }, { data: features, error: featuresError }] = await Promise.all([
     client.from("recipes").select(RECIPE_COLUMNS).order("updated_at", { ascending: false }),
     client.from("recipe_features").select("recipe_id,featured_at").order("featured_at", { ascending: false }),
+  ]);
+  if (error) throw error;
+  if (featuresError) throw featuresError;
+  return addFeaturedState((data ?? []).map(mapRecipeFromDatabase).filter(Boolean), features);
+}
+
+export async function fetchRecipesByAuthor(userId) {
+  const client = getSupabaseClient();
+  const [{ data, error }, { data: features, error: featuresError }] = await Promise.all([
+    client
+      .from("recipes")
+      .select(RECIPE_COLUMNS)
+      .eq("user_id", userId)
+      .eq("is_published", true)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false }),
+    client.from("recipe_features").select("recipe_id,featured_at"),
   ]);
   if (error) throw error;
   if (featuresError) throw featuresError;
@@ -345,6 +463,7 @@ async function removeRecipeImage(path) {
 
 export async function createRecipe(recipe, imageFile = null) {
   const user = await requireUser();
+  await ensureMyProfile();
   let imagePath = null;
 
   try {
@@ -430,24 +549,105 @@ export async function updateRecipe(recipeId, recipe, options = {}) {
   }
 }
 
-export async function deleteRecipe(recipeId) {
+export async function archiveRecipe(recipeId) {
   const user = await requireUser();
   const recipe = await fetchRecipe(recipeId);
 
   if (!recipe || recipe.userId !== user.id) {
-    throw new Error("Du kan bare slette dine egne oppskrifter.");
+    throw new Error("Du kan bare arkivere dine egne oppskrifter.");
   }
 
-  const { error } = await getSupabaseClient().from("recipes").delete().eq("id", recipeId);
+  const { error } = await getSupabaseClient()
+    .from("recipes")
+    .update({ archived_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", recipeId);
   if (error) throw error;
 
   updateRecipeCache(recipe, true);
-  if (recipe.imagePath) {
-    try {
-      await removeRecipeImage(recipe.imagePath);
-    } catch (cleanupError) {
-      console.error("Oppskriften ble slettet, men bildet kunne ikke ryddes bort:", cleanupError);
-    }
+}
+
+export async function restoreRecipe(recipeId) {
+  const user = await requireUser();
+  const recipe = await fetchRecipe(recipeId);
+  if (!recipe || recipe.userId !== user.id) {
+    throw new Error("Du kan bare gjenopprette dine egne oppskrifter.");
+  }
+
+  const { error } = await getSupabaseClient()
+    .from("recipes")
+    .update({ archived_at: null, updated_at: new Date().toISOString() })
+    .eq("id", recipeId);
+  if (error) throw error;
+}
+
+export async function getMfaState() {
+  const client = getSupabaseClient();
+  const [{ data: levelData, error: levelError }, { data: factorData, error: factorError }] = await Promise.all([
+    client.auth.mfa.getAuthenticatorAssuranceLevel(),
+    client.auth.mfa.listFactors(),
+  ]);
+  if (levelError) throw levelError;
+  if (factorError) throw factorError;
+  const verifiedTotp = factorData?.totp?.find((factor) => factor.status === "verified") ?? null;
+  return {
+    currentLevel: levelData?.currentLevel ?? "aal1",
+    nextLevel: levelData?.nextLevel ?? "aal1",
+    verifiedFactor: verifiedTotp,
+  };
+}
+
+export async function enrollMfa() {
+  const { data, error } = await getSupabaseClient().auth.mfa.enroll({
+    factorType: "totp",
+    friendlyName: `MatPreppern-admin-${Date.now()}`,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function verifyMfa(factorId, code) {
+  const { data, error } = await getSupabaseClient().auth.mfa.challengeAndVerify({
+    factorId,
+    code: code.trim(),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function exportMyData() {
+  const user = await requireUser();
+  const [profile, recipes, favorites, mealPlan, reports] = await Promise.all([
+    fetchProfile(user.id),
+    fetchMyRecipes(),
+    fetchFavoriteIds(),
+    fetchSavedMealPlan(),
+    fetchMyReports(),
+  ]);
+  return {
+    exportedAt: new Date().toISOString(),
+    account: { id: user.id, email: user.email },
+    profile,
+    recipes,
+    favoriteRecipeIds: favorites,
+    mealPlan,
+    reports,
+  };
+}
+
+export async function deleteMyAccount() {
+  await requireUser();
+  const { data, error } = await getSupabaseClient().functions.invoke("delete-account", {
+    body: { confirmation: "SLETT" },
+  });
+  if (error) throw error;
+  if (!data?.deleted) throw new Error("Kontoen kunne ikke slettes.");
+  localStorage.removeItem(RECIPE_CACHE_KEY);
+  localStorage.removeItem("matpreppernMealPlan");
+  localStorage.removeItem("matpreppernCheckedShoppingItems");
+  try {
+    await getSupabaseClient().auth.signOut({ scope: "local" });
+  } catch (error) {
+    console.warn("Kontoen er slettet, men den lokale økten måtte ryddes manuelt:", error);
   }
 }
 
