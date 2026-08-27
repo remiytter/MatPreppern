@@ -2316,6 +2316,153 @@ input[type="range"] {
   gap: 1rem;
 }
 
+.footer-consent-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.consent-banner {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 10001;
+  width: min(760px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  margin: 0 auto;
+  overflow-y: auto;
+  border: 2px solid var(--color-primary-dark);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: 0 24px 70px rgba(17, 24, 39, 0.28);
+}
+
+.consent-banner__content {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.consent-banner h2 {
+  margin: 0.2rem 0 0.6rem;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+}
+
+.consent-banner p {
+  max-width: 68ch;
+}
+
+.consent-banner a {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.consent-banner__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.consent-choice-button {
+  min-height: 48px;
+  border: 2px solid var(--color-primary-dark);
+  border-radius: var(--radius-small);
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-dark);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.consent-choice-button:hover {
+  background: var(--color-primary);
+}
+
+.consent-customize-button {
+  justify-self: start;
+  min-height: 44px;
+  border: 0;
+  padding: 0.5rem 0;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.consent-details {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.consent-details[hidden] {
+  display: none;
+}
+
+.consent-details fieldset {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.consent-details legend {
+  margin-bottom: 0.75rem;
+  font-weight: 800;
+}
+
+.consent-details label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+}
+
+.consent-details input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  accent-color: var(--color-primary-dark);
+}
+
+.consent-details small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--color-muted);
+}
+
 .app-update-banner {
   position: fixed;
   right: 1rem;
@@ -2422,6 +2569,10 @@ input[type="range"] {
     flex-direction: column;
   }
 
+  .consent-banner__choices {
+    grid-template-columns: 1fr;
+  }
+
   .community-note-heading time {
     white-space: normal;
   }
@@ -2452,5 +2603,11 @@ input[type="range"] {
   .meal-slot,
   .recipe-detail-card {
     border: 1px solid ButtonText;
+  }
+
+  .consent-banner,
+  .consent-choice-button,
+  .consent-details label {
+    border: 2px solid ButtonText;
   }
 }

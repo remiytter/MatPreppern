@@ -24,6 +24,7 @@ som database, autentisering og bildelagring.
   semantiske skjemaer/dialoger, samt en tilgjengelig mobilmeny
 - Dataeksport og sikker, permanent kontosletting fra Min side
 - Personvernerklæring, bruksvilkår og kontaktinformasjon
+- Samtykkestyrt Google Analytics og Hotjar/Contentsquare på offentlige sider
 - Lokal lesecache, egen offline-side og kontrollert oppdateringsvarsel for PWA-en
 
 ## Starte prosjektet
@@ -129,6 +130,39 @@ Nettlesersesjonen må lagres lokalt for at brukeren skal forbli innlogget. En
 XSS-sårbarhet kan derfor stjele en aktiv sesjon selv om passordet aldri er
 tilgjengelig. Unngå usikre tredjepartsskript, hold Supabase-klienten oppdatert,
 og kjør sikkerhetskontroller jevnlig.
+
+## Statistikk og samtykke
+
+`js/consent.js` håndterer et eget, tilgjengelig samtykkebanner med versjonert
+valg og Google Consent Mode v2. Google Analytics, Google Tag Manager og
+Hotjar/Contentsquare lastes ikke før brukeren aktivt godtar statistikk. Det er
+like enkelt å avvise som å godta, og valget kan endres fra bunnteksten eller
+personvernsiden.
+
+- Google Analytics: `G-13M0W90GNB`
+- Google Tag Manager: `GTM-TXG48DXB`
+- Contentsquare UXA-tag for Hotjar: `1f63737166e68`
+
+Målingen er begrenset til `index.html`, `recipe.html`,
+`community-notes.html` og offentlige `profile.html`. Konto, innlogging,
+rapportoversikt, planlegger og oppskriftsredigering spores ikke. URL-parametere
+og parametere i henvisende URL fjernes før data sendes til analyseverktøyene.
+
+Google Analytics og Contentsquare lastes direkte fra den lokale
+samtykkekontrollen. Ikke opprett en ekstra sidevisningstag for de samme
+verktøyene i GTM, fordi det vil gi doble målinger. GTM-containeren er koblet til
+etter samtykke og kan senere brukes til gjennomgåtte, ikke-personlige hendelser.
+Beskytt Google-kontoen med tofaktor og begrens hvem som kan publisere GTM-tags.
+
+Før produksjonsmåling:
+
+1. Sett GA4-oppbevaring av hendelses- og brukerdata til korteste praktiske
+   periode, for eksempel to måneder.
+2. Hold Google Signals og annonsepersonalisering avslått.
+3. Kontroller maskering og datalagring i Hotjar/Contentsquare.
+4. Test i et privat nettleservindu: avvisning skal gi null forespørsler til
+   Google/Contentsquare, mens samtykke skal vises i GA4 Realtime og Hotjars
+   verktøy for installasjonskontroll.
 
 ## Tester
 

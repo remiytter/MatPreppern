@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://*.contentsquare.net; style-src 'self'; img-src 'self' data: blob: https://oroyhudjptfzuhvmjypm.supabase.co https://www.googletagmanager.com https://*.google-analytics.com https://*.contentsquare.net; connect-src 'self' https://oroyhudjptfzuhvmjypm.supabase.co https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.contentsquare.net https://*.contentsquare.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <title>MatPreppern | Meal prep gjort enkelt</title>
     <meta
       name="description"
@@ -238,6 +238,7 @@
     </div>
 
     <noscript>MatPreppern krever JavaScript for å hente og vise oppskrifter.</noscript>
+    <script src="js/consent.js"></script>
     <script type="module" src="js/auth-nav.js"></script>
     <script type="module" src="js/pwa.js"></script>
     <script type="module" src="js/index.js"></script>

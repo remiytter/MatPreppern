@@ -27,7 +27,7 @@
         <p class="field-help">Sist oppdatert 27. august 2026.</p>
       </header>
 
-      <nav class="legal-toc" aria-label="Innhold på siden"><a href="#privacy">Personvern</a><a href="#terms">Bruksvilkår</a><a href="#contact">Kontakt</a></nav>
+      <nav class="legal-toc" aria-label="Innhold på siden"><a href="#privacy">Personvern</a><a href="#analytics">Statistikk</a><a href="#terms">Bruksvilkår</a><a href="#contact">Kontakt</a></nav>
 
       <section id="privacy" class="legal-section" aria-labelledby="privacyTitle">
         <h2 id="privacyTitle">Personvernerklæring</h2>
@@ -42,7 +42,14 @@
         <h3>Dine valg og rettigheter</h3>
         <p>På Min side kan du endre profil, laste ned en kopi av dataene dine og slette kontoen. Kontosletting fjerner konto, profil, oppskrifter, bilder, favoritter og måltidsplan permanent. Du kan også be om innsyn, retting, begrensning eller protest ved å kontakte oss. Du kan klage til Datatilsynet dersom du mener opplysninger behandles i strid med reglene.</p>
         <h3>Lokal lagring</h3>
-        <p>Nettleseren lagrer nødvendige innloggingsdata, offline-cache og enkelte brukerinnstillinger lokalt. Dette brukes for innlogging, installasjon og offline-funksjonalitet – ikke til tredjepartsannonsering.</p>
+        <p>Nettleseren lagrer nødvendige innloggingsdata, offline-cache, selve samtykkevalget og enkelte brukerinnstillinger lokalt. Dette brukes for innlogging, installasjon, sikkerhet og offline-funksjonalitet. Slik nødvendig lagring brukes ikke til tredjepartsannonsering.</p>
+
+        <h3 id="analytics">Statistikk og bruksmåling</h3>
+        <p>Hvis du aktivt samtykker til statistikk, bruker MatPreppern Google Analytics på offentlige sider for å måle sidevisninger, nettleser- og enhetstype, omtrentlig geografisk område og overordnede bruksmønstre. Google-signaler, annonsepersonalisering og annonsebasert lagring er slått av.</p>
+        <p>Hotjar/Contentsquare brukes på de samme offentlige sidene for å forstå klikk, navigasjon og hvordan grensesnittet brukes. MatPreppern sender ikke e-postadresse, passord, rapporttekst, oppskriftskladder eller interne bruker-ID-er til analyseverktøyene. URL-parametere fjernes før data sendes til analyseverktøyene.</p>
+        <p>Statistikkskriptene lastes ikke på Min side, innlogging, rapportoversikten, planleggeren eller siden for å legge til og redigere oppskrifter. De lastes heller aldri før du har samtykket. Google og Hotjar/Contentsquare behandler opplysninger som leverandører, og behandling kan omfatte godkjente overføringsmekanismer utenfor Norge eller EØS. Les mer i <a href="https://policies.google.com/privacy" rel="external">Googles personvernregler</a> og <a href="https://www.hotjar.com/legal/policies/privacy/" rel="external">Hotjars personvernregler</a>.</p>
+        <p>Samtykke er frivillig. Du kan avvise uten å miste tilgang til MatPreppern og trekke samtykket tilbake like enkelt som du ga det. Når samtykket trekkes tilbake, stopper ny måling og analyse-cookies som MatPreppern kan nå, blir fjernet.</p>
+        <button class="secondary-button" type="button" data-open-cookie-settings>Endre samtykkevalg</button>
       </section>
 
       <section id="terms" class="legal-section" aria-labelledby="termsTitle">
@@ -66,6 +73,7 @@
       </section>
     </main>
     <footer class="site-footer"><div><p><strong>MatPreppern</strong></p><nav aria-label="Juridisk informasjon"><a href="legal.html#privacy">Personvern</a><a href="legal.html#terms">Vilkår</a><a href="legal.html#contact">Kontakt</a></nav></div></footer>
+    <script src="js/consent.js"></script>
     <script type="module" src="js/auth-nav.js"></script>
     <script type="module" src="js/pwa.js"></script>
   </body>

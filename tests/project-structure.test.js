@@ -219,3 +219,49 @@ test("har juridiske sider, sikker kontosletting og kontrollert PWA-oppdatering",
   assert.match(pwaScript, /Oppdater nå/);
   assert.match(accountHtml, /legal\.html#privacy/);
 });
+
+test("laster analyseverktøy bare etter et tilgjengelig statistikksamtykke", async () => {
+  const htmlFiles = [
+    "index.html",
+    "planner.html",
+    "account.html",
+    "add-recipe.html",
+    "community-notes.html",
+    "reports.html",
+    "recipe.html",
+    "profile.html",
+    "legal.html",
+  ];
+  const htmlPages = await Promise.all(htmlFiles.map(readProjectFile));
+  const [consentScript, legalHtml, styleSheet, serviceWorker] = await Promise.all([
+    readProjectFile("js/consent.js"),
+    readProjectFile("legal.html"),
+    readProjectFile("css/style.css"),
+    readProjectFile("sw.js"),
+  ]);
+
+  for (const html of htmlPages) {
+    assert.match(html, /<script src="js\/consent\.js"><\/script>/);
+    assert.doesNotMatch(html, /<script[^>]+(?:google-analytics|contentsquare)[^>]*>/i);
+  }
+
+  assert.match(consentScript, /G-13M0W90GNB/);
+  assert.match(consentScript, /GTM-TXG48DXB/);
+  assert.match(consentScript, /1f63737166e68/);
+  assert.match(consentScript, /analytics_storage:\s*"denied"/);
+  assert.match(consentScript, /loadContentsquareExperienceAnalytics/);
+  assert.match(consentScript, /referrer:removeQueryString/);
+  assert.match(consentScript, /TRACKED_PUBLIC_PAGES/);
+  assert.match(legalHtml, /id="analytics"/);
+  assert.match(legalHtml, /data-open-cookie-settings/);
+  assert.match(styleSheet, /\.consent-banner/);
+  assert.match(styleSheet, /\.consent-choice-button/);
+  assert.match(serviceWorker, /js\/consent\.js/);
+
+  for (const fileName of ["index.html", "recipe.html", "community-notes.html", "profile.html"]) {
+    const html = await readProjectFile(fileName);
+    assert.match(html, /https:\/\/\*\.contentsquare\.net/);
+    assert.match(html, /https:\/\/www\.googletagmanager\.com/);
+    assert.doesNotMatch(html, /script-src[^;]*'unsafe-inline'/);
+  }
+});
